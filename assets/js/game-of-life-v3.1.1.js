@@ -32,6 +32,13 @@
         running : false,
         autoplay : false,
 
+        gameOver : false,
+        gameResult : "",
+
+        messageLoc : [90, 41],
+        flag : [[41, 1], [41, 2], [42, 1], [42, 2]],
+        enemyflag : [[41, 177], [41, 178], [42, 177], [42, 178]],
+
 
         // Clear state
         clear : {
@@ -649,6 +656,15 @@
                         }
                     }
                 }
+                
+                if (GOL.gameOver) {
+                    this.context.font = "48px sans";
+                    this.context.textAlign = "center";
+                    this.context.fillText("Game Over",  (this.cellSize + this.cellSpace) * GOL.messageLoc[0], (this.cellSize + this.cellSpace) * GOL.messageLoc[1]);
+                    
+                    this.context.font = "36px sans";
+                    this.context.fillText(GOL.gameResult,  (this.cellSize + this.cellSpace) * GOL.messageLoc[0], (this.cellSize + this.cellSpace) * GOL.messageLoc[1] + 30);
+                }
             },
 
 
@@ -817,6 +833,19 @@
                 }
 
                 this.actualState = newState;
+
+                // Have either flags been destroyed?
+                
+                console.log(newState);
+                console.log(_.intersection(newState, GOL.flag));
+                if (_.intersection(newState, GOL.flag).length < 4) {
+                    GOL.gameOver = true;
+                    GOL.gameResult = "You Lost";
+                }
+                if (_.intersection(newState, GOL.flag).length < 4) { //Assumes enemy has same number of flags
+                    GOL.gameOver = true;
+                    GOL.gmeResult = "You Won!";
+                }
 
                 return alive;
             },
@@ -1053,6 +1082,20 @@
          *
          */
         helpers : {
+            arraysEqual : function (a, b) {
+                if (a === b) return true;
+                if (a == null || b == null) return false;
+                if (a.length != b.length) return false;
+
+                // If you don't care about the order of the elements inside
+                // the array, you should sort both arrays here.
+
+                for (var i = 0; i < a.length; ++i) {
+                    if (a[i] !== b[i]) return false;
+                }
+                return true;
+            }, 
+
             urlParameters : null, // Cache
 
 
