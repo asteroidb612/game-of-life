@@ -37,8 +37,7 @@
 
         messageLoc : [90, 41],
         flag : [[41, 1], [41, 2], [42, 1], [42, 2]],
-        enemyflag : [[41, 177], [41, 178], [42, 177], [42, 178]],
-
+        enemyFlag : [[41, 177], [41, 178], [42, 177], [42, 178]],
 
         // Clear state
         clear : {
@@ -313,6 +312,8 @@
             
             algorithmTime = (new Date());
 
+            //Does the real work of advancing state of game
+            //Rest of this function does the graphics
             liveCellNumber = GOL.listLife.nextGeneration();
 
             algorithmTime = (new Date()) - algorithmTime;
@@ -836,17 +837,33 @@
 
                 // Have either flags been destroyed?
                 
-                console.log(newState);
-                console.log(_.intersection(newState, GOL.flag));
-                if (_.intersection(newState, GOL.flag).length < 4) {
+                //Convert actualState to flag style state
+                var reference = _.flatten(this.actualState.map(function (x) {
+                    var coordinateList = [];
+                    for (var i=1; i<x.length; i++) {
+                        coordinateList.push([x[0], x[i]]);
+                    }
+                    return coordinateList;
+                }), true); //true to only flatten one level
+
+                console.log("reference", reference);
+                console.log("Player intersection: ", _.intersection(reference, GOL.flag));
+                console.log("Enemy intersection: ", _.intersection(reference, GOL.enemyFlag));
+                console.log("Enemy Flag", GOL.enemyFlag);
+                if (_.intersection(reference, GOL.flag).length < 4) {
                     GOL.gameOver = true;
                     GOL.gameResult = "You Lost";
+                    GOL.canvas.drawWorld();
+                    GOL.running = false;
+                    console.log("Game Over");
                 }
-                if (_.intersection(newState, GOL.flag).length < 4) { //Assumes enemy has same number of flags
+                if (_.intersection(reference, GOL.enemyFlag).length < 4) { //Assumes enemy has same number of flags
                     GOL.gameOver = true;
-                    GOL.gmeResult = "You Won!";
+                    GOL.gameResult = "You Won!";
+                    GOL.canvas.drawWorld();
+                    GOL.running = false;
+                    console.log("Game Over");
                 }
-
                 return alive;
             },
 
@@ -1010,6 +1027,7 @@
             addCell : function(x, y, state) {
                 if (state.length === 0) {
                     state.push([y, x]);
+                    console.log("Cell Added", state);
                     return;
                 }
 
