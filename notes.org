@@ -105,8 +105,8 @@
 ***** TODO Change drawCell to accept queues
 *** DONE Needs listLife.QueuedState
 *** DONE needs isQueued
-*** Need to commit queue
-
+*** DONE Need to commit queue
+*** DONE Add key binding to trigger schedule
 * Resources
 ** Cells (obviously)
 ** Cells in their area?

@@ -442,7 +442,8 @@
                 }
                 
                 if (event.keyCode === 67) { // Key: C
-                    GOL.handlers.buttons.clear();
+                    GOL.listLife.commitScheduled = true;
+                    console.log("Commit Scheduled", GOL.listLife.commitScheduled);
                 } else if (event.keyCode === 82 ) { // Key: R
                     GOL.handlers.buttons.run();
                 } else if (event.keyCode === 83 ) { // Key: S
@@ -787,11 +788,13 @@
 
             actualState : [],
             queuedState : [],
+            commitScheduled : false,
             redrawList : [],
 
             init : function () {
                 this.actualState = [];
                 this.queuedState = [];
+                this.commitScheduled = false;
             },
 
             nextGeneration : function() {
@@ -845,6 +848,20 @@
                         this.addCell(t1, t2, newState);
                         alive++;
                         this.redrawList.push([t1, t2, 1]);
+                    }
+                }
+
+                // Add in anything from the queue if committing
+                if (this.commitScheduled) {
+                    this.commitScheduled = false;
+                    for (i = 0; i < this.queuedState.length; i++) {
+                        for (j = 1; j < this.queuedState[i].length; j++) {
+                            x = this.queuedState[i][j];
+                            y = this.queuedState[i][0];
+                            
+                            this.addCell(x, y, this.actualState);
+                            this.removeCell(x, y, this.queuedState);
+                        }
                     }
                 }
 
