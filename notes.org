@@ -97,12 +97,11 @@
 ** clear, trail, zoom, colors, grid
 * Queue Edit
 ** Adding queueCell function, parallel to switchcell
-*** TODO Needs unQueue and Queue 
+*** DONE Needs unQueue and Queue 
 **** mirror changecellto[alive|dead]
 **** Check whether on screen
-**** Check whether in bounds
 **** Draw the Cell
-***** TODO Change drawCell to accept queues
+***** DONE Change drawCell to accept queues
 *** DONE Needs listLife.QueuedState
 *** DONE needs isQueued
 *** DONE Need to commit queue

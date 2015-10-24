@@ -136,7 +136,8 @@
                     trail : ['#B5ECA2'],
                     alive : ['#000000'],//['#9898FF', '#8585FF', '#7272FF', '#5F5FFF', '#4C4CFF', '#3939FF', '#2626FF', '#1313FF', '#0000FF', '#1313FF', '#2626FF', '#3939FF', '#4C4CFF', '#5F5FFF', '#7272FF', '#8585FF'],
                     home : ['#9898FF'],
-                    enemy : ['#ff9898']
+                    enemy : ['#ff9898'],
+                    queued : ['#4c4cff']
                 },
             ]
         },
@@ -402,7 +403,7 @@
              */
             canvasMouseDown : function(event) {
                 var position = GOL.helpers.mousePosition(event);
-                GOL.canvas.switchCell(position[0], position[1]);
+                GOL.canvas.queueCell(position[0], position[1]);
                 GOL.handlers.lastX = position[0];
                 GOL.handlers.lastY = position[1];
                 GOL.handlers.mouseDown = true;
@@ -424,7 +425,7 @@
                 if (GOL.handlers.mouseDown) {
                     var position = GOL.helpers.mousePosition(event);
                     if ((position[0] !== GOL.handlers.lastX) || (position[1] !== GOL.handlers.lastY)) {
-                        GOL.canvas.switchCell(position[0], position[1]);
+                        GOL.canvas.queueCell(position[0], position[1]);
                         GOL.handlers.lastX = position[0];
                         GOL.handlers.lastY = position[1];
                     }
@@ -443,7 +444,6 @@
                 
                 if (event.keyCode === 67) { // Key: C
                     GOL.listLife.commitScheduled = true;
-                    console.log("Commit Scheduled", GOL.listLife.commitScheduled);
                 } else if (event.keyCode === 82 ) { // Key: R
                     GOL.handlers.buttons.run();
                 } else if (event.keyCode === 83 ) { // Key: S
@@ -652,9 +652,9 @@
                 for (i = 0 ; i < GOL.columns; i++) {
                     for (j = 0 ; j < GOL.rows; j++) {
                         if (GOL.listLife.isAlive(i, j)) {
-                            this.drawCell(i, j, true);
+                            this.drawCell(i, j, "alive");
                         } else {
-                            this.drawCell(i, j, false);
+                            this.drawCell(i, j, "false");
                         }
                     }
                 }
@@ -691,13 +691,15 @@
             /**
              * drawCell
              */
-            drawCell : function (i, j, alive) {
+            //TODO: This should be a switch statement on state, right?
+            drawCell : function (i, j, state) {
                 
-                if (alive) {
+                if (state === "queued") {
+                    this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].queued;
+                } else if (state === "alive") {
 
                     if (this.age[i][j] > -1)
                         this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].alive[this.age[i][j] % GOL.colors.schemes[GOL.colors.current].alive.length];
-
                 } else {
                     if (GOL.trail.current && this.age[i][j] < 0) {
                         this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].trail[(this.age[i][j] * -1) % GOL.colors.schemes[GOL.colors.current].trail.length];
@@ -743,8 +745,9 @@
                         GOL.listLife.addCell(i, j, GOL.listLife.queuedState);
                     }
                 }
+                console.log(GOL.listLife.queuedState);
             },
-                        
+            
 
             /**
              * keepCellAlive
@@ -752,7 +755,7 @@
             keepCellAlive : function(i, j) {
                 if (i >= 0 && i < GOL.columns && j >=0 && j < GOL.rows) {
                     this.age[i][j]++;
-                    this.drawCell(i, j, true);
+                    this.drawCell(i, j, "alive");
                 }
             },
 
@@ -763,7 +766,7 @@
             changeCelltoAlive : function(i, j) {
                 if (i >= 0 && i < GOL.columns && j >=0 && j < GOL.rows) {
                     this.age[i][j] = 1;
-                    this.drawCell(i, j, true);
+                    this.drawCell(i, j, "alive");
                 }
             },
 
@@ -774,7 +777,23 @@
             changeCelltoDead : function(i, j) {
                 if (i >= 0 && i < GOL.columns && j >=0 && j < GOL.rows) {
                     this.age[i][j] = -this.age[i][j]; // Keep trail
-                    this.drawCell(i, j, false);
+                    this.drawCell(i, j, "dead");
+                }
+            },
+
+            queue: function(i, j) {
+                if (i >= 0 && i < GOL.columns && j >=0 && j < GOL.rows) {
+                    this.drawCell(i, j, "queued");
+                }
+            },
+
+            unqueue: function(i, j) {
+                if (i >= 0 && i < GOL.columns && j >=0 && j < GOL.rows) {
+                    if (GOL.listLife.isAlive(i, j)) {
+                        this.drawCell(i, j, "alive");
+                    } else{
+                        this.drawCell(i, j, "dead");
+                    }
                 }
             }
 
@@ -854,15 +873,23 @@
                 // Add in anything from the queue if committing
                 if (this.commitScheduled) {
                     this.commitScheduled = false;
+                    var temp = []; //Hold removers while we loop
+                    var t; // Hold removers while we remove
                     for (i = 0; i < this.queuedState.length; i++) {
                         for (j = 1; j < this.queuedState[i].length; j++) {
                             x = this.queuedState[i][j];
                             y = this.queuedState[i][0];
                             
-                            this.addCell(x, y, this.actualState);
-                            this.removeCell(x, y, this.queuedState);
+                            this.addCell(x, y, newState);
+                            temp.push([x,y]);
                         }
                     }
+                    //Actually remove now that we're done looping
+                    for (i=0; i<temp.length; i++) {
+                        t = temp.pop();
+                        this.removeCell(t[0], t[1], this.queuedState);
+                    }
+                    this.removeCell(x, y, this.queuedState);
                 }
 
                 this.actualState = newState;
@@ -1071,7 +1098,6 @@
             addCell : function(x, y, state) {
                 if (state.length === 0) {
                     state.push([y, x]);
-                    console.log("Cell Added", state);
                     return;
                 }
 
