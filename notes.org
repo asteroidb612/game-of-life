@@ -1,0 +1,125 @@
+* State formats
+| nextGeneration   | Array of arrays of ints                            | First int in each secondary array is row, rest are columns    |
+| loadState        | A list of dictionaries of strings to lists of ints | Weird to allow state to store in URL's                        |
+| allDeadNeighbors | Dict of String to Int                              | String is x and y seperated by comma. Int is neighbour amount |
+** The nextGeneration one is the real one
+
+* Performance
+** I'm seeing a drop down from 60 frames per second to like 9
+*** TODO I can be much more efficient with the flag checking. I'll get on that.
+* Adding in commits
+** Entry point with the click
+*** canvasMouseDown recieves event 
+*** passes to GOL.canvas.switchCell [Int, Int] -> ()z
+**** If it's alive, call changeCelltoDead
+*** Also notes positions as last positions for canvasMouseMove
+* Dramatis Personae
+** GOL
+*** init()
+*** loadConfig()
+*** loadState()
+*** randomState()
+*** cleanUp()
+*** prepare()
+*** keepDOMElements()
+*** registerEvents()
+*** nextStep()
+*** handlers
+**** canvasMouseDown()
+***** switchCell(EventPositions)
+****** Limited to the user's area by basic if
+****** changeCell* then listLife.add/remove
+***** record positions for posterity
+***** set handlers.mouseDown for mousemove
+**** canvasMouseUp()
+**** canvasMouseMove()
+***** Check if the click is down
+***** if it is and if we're in a different square, activate the square
+**** keyboard()
+**** buttons
+***** run()
+***** step()
+***** clear()
+***** trail()
+***** colors()
+***** grid()
+***** export_()
+*** canvas
+***** init()
+***** clearWorld()
+***** drawWorld()
+****** Full rendering, often unneccsary
+******* 
+******* triggered by
+- GOL.prepare()
+- Schedules
+  - grid
+  - color
+  - trail
+- buttons if not running
+- Me to display game over from nextGeneration
+
+***** setNoGridOn()
+***** setNoGridOff()
+***** drawCell()
+***** switchCell()
+***** The following only called from
+****** switch 
+****** redrawlist loop in nextStep
+***** keepCellAlive()
+***** changeCellto[Dead|Alive]()
+****** Makes sure cell is on screen
+****** adjusts trail
+****** undraws cell
+****** if alive, age=1, if dead, -prior age
+*** listLife
+***** init()
+***** nextGeneration()
+****** called by nextStep
+***** getNeighboursFromAlive()
+***** isAlive()
+***** removeCell()
+***** addCell()
+*** helpers
+***** arraysEqual()
+***** random()
+***** getUrlParameter()
+***** registerEvent()
+***** mousePosition()
+* State vars
+** GOL.listLife.redrawList :: [(Int, Int, Int)]
+*** Stores what needs to be updated after call to nextGeneration
+*** third int is liveness of cell 
+**** 1 -> dead to life
+**** 2 -> life to life
+**** otherwise life to death
+
+** clear, trail, zoom, colors, grid
+* Queue Edit
+** Adding queueCell function, parallel to switchcell
+*** TODO Needs unQueue and Queue 
+**** mirror changecellto[alive|dead]
+**** Check whether on screen
+**** Check whether in bounds
+**** Draw the Cell
+***** TODO Change drawCell to accept queues
+*** DONE Needs listLife.QueuedState
+*** DONE needs isQueued
+*** Need to commit queue
+
+* Resources
+** Cells (obviously)
+** Cells in their area?
+*** rare
+** Permacells?
+*** Maybe they stay alive for a certain amount of generations?
+*** Permanently dead cells?
+*** Maybe the work on a different time scale?
+*** rare
+** Deletion credits
+*** Lets you kill everything in certain sized area
+*** Probably to stop chaos, defuse quickly
+* Side project
+** Structure analyzer
+*** Try to find pressure points
+*** Measure the chaos resulting from adding any one cell to a stable structure/spaceship

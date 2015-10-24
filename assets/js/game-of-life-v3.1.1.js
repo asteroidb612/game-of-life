@@ -731,6 +731,19 @@
                 }
             },
 
+            //Added by Drew to queue/group cell insertions
+            queueCell : function(i, j) {
+                if (i < 60) {
+                    if (GOL.listLife.isQueued(i, j)) {
+                        this.unqueue(i, j);
+                        GOL.listLife.removeCell(i, j, GOL.listLife.queuedState);
+                    }else {
+                        this.queue(i, j);
+                        GOL.listLife.addCell(i, j, GOL.listLife.queuedState);
+                    }
+                }
+            },
+                        
 
             /**
              * keepCellAlive
@@ -773,10 +786,12 @@
         listLife : {
 
             actualState : [],
+            queuedState : [],
             redrawList : [],
 
             init : function () {
                 this.actualState = [];
+                this.queuedState = [];
             },
 
             nextGeneration : function() {
@@ -846,10 +861,6 @@
                     return coordinateList;
                 }), true); //true to only flatten one level
 
-                console.log("reference", reference);
-                console.log("Player intersection: ", _.intersection(reference, GOL.flag));
-                console.log("Enemy intersection: ", _.intersection(reference, GOL.enemyFlag));
-                console.log("Enemy Flag", GOL.enemyFlag);
                 if (_.intersection(reference, GOL.flag).length < 4) {
                     GOL.gameOver = true;
                     GOL.gameResult = "You Lost";
@@ -997,6 +1008,22 @@
                 return false;
             },
 
+            //TODO: Merge this with isAlive? This is the same code with names switched. 
+            // May be simplest to leave it like this
+            isQueued : function(x, y) {
+                var i, j;
+                
+                for (i = 0; i < this.queuedState.length; i++) {
+                    if (this.queuedState[i][0] === y) {
+                        for (j = 1; j < this.queuedState[i].length; j++) {
+                            if (this.queuedState[i][j] === x) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            },
 
             /**
              *
