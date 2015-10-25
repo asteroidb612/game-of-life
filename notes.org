@@ -122,3 +122,6 @@
 ** Structure analyzer
 *** Try to find pressure points
 *** Measure the chaos resulting from adding any one cell to a stable structure/spaceship
+* ai
+** It's pretty challenging if someone is just shooting spaceships randomly 
+*** Unless you get them right away

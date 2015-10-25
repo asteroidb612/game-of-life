@@ -26,7 +26,7 @@
         columns : 0,
         rows : 0,
         
-        waitTime: 0,
+        waitTime: 0, // TODO This doesn't do anything, should it?
         generation : 0,
 
         running : false,
@@ -38,6 +38,8 @@
         messageLoc : [90, 41],
         flag : [[41, 1], [41, 2], [42, 1], [42, 2]],
         enemyFlag : [[41, 177], [41, 178], [42, 177], [42, 178]],
+
+        turnsSinceSpaceShip : 0,
 
         // Clear state
         clear : {
@@ -302,6 +304,23 @@
             this.helpers.registerEvent(document.getElementById('buttonColors'), 'click', this.handlers.buttons.colors, false);
         },
 
+        //Simple ai to randomly throw spaceships at player
+        throwLightSpaceShip : function() {
+            if (this.turnsSinceSpaceShip > 60) {
+                console.log("SPACESHIIIIIP");
+                var height = this.helpers.random(0, this.columns-1);
+                //TODO un-hard code this spaceship
+                this.listLife.addCell(150 + 0, height + 0, this.listLife.actualState);
+                this.listLife.addCell(150 + 1, height + 0, this.listLife.actualState);
+                this.listLife.addCell(150 + 2, height + 0, this.listLife.actualState); 
+                this.listLife.addCell(150 + 3, height + 0, this.listLife.actualState);
+                this.listLife.addCell(150 + 4, height + 1, this.listLife.actualState);
+                this.listLife.addCell(150 + 0, height + 1, this.listLife.actualState);
+                this.listLife.addCell(150 + 0, height + 2, this.listLife.actualState);
+                this.listLife.addCell(150 + 1, height + 3, this.listLife.actualState);
+                this.turnsSinceSpaceShip = 0;
+            }
+        },
 
         /**
          * Run Next Step
@@ -312,7 +331,9 @@
             // Algorithm run
             
             algorithmTime = (new Date());
-
+            
+            GOL.turnsSinceSpaceShip += 1;
+            GOL.throwLightSpaceShip();
             //Does the real work of advancing state of game
             //Rest of this function does the graphics
             liveCellNumber = GOL.listLife.nextGeneration();
