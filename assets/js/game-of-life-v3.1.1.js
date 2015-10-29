@@ -894,23 +894,15 @@
                 // Add in anything from the queue if committing
                 if (this.commitScheduled) {
                     this.commitScheduled = false;
-                    var temp = []; //Hold removers while we loop
-                    var t; // Hold removers while we remove
                     for (i = 0; i < this.queuedState.length; i++) {
                         for (j = 1; j < this.queuedState[i].length; j++) {
                             x = this.queuedState[i][j];
                             y = this.queuedState[i][0];
                             
                             this.addCell(x, y, newState);
-                            temp.push([x,y]);
                         }
                     }
-                    //Actually remove now that we're done looping
-                    for (i=0; i<temp.length; i++) {
-                        t = temp.pop();
-                        this.removeCell(t[0], t[1], this.queuedState);
-                    }
-                    this.removeCell(x, y, this.queuedState);
+                    this.queuedState = [];
                 }
 
                 this.actualState = newState;
