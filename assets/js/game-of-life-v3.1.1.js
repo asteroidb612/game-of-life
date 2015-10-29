@@ -30,7 +30,7 @@
         generation : 0,
 
         running : false,
-        autoplay : false,
+        autoplay : true,
 
         gameOver : false,
         gameResult : "",
@@ -306,9 +306,16 @@
 
         //Simple ai to randomly throw spaceships at player
         throwLightSpaceShip : function() {
-            if (this.turnsSinceSpaceShip > 60) {
+            if (this.turnsSinceSpaceShip > 60 || GOL.generation == 4) {
                 console.log("SPACESHIIIIIP");
+
                 var height = this.helpers.random(0, this.columns-1);
+
+                //SHITCODE. TODO: REMOVE
+                if (GOL.generation == 4) {
+                    height = 40;
+                }
+
                 //TODO un-hard code this spaceship
                 this.listLife.addCell(150 + 0, height + 0, this.listLife.actualState);
                 this.listLife.addCell(150 + 1, height + 0, this.listLife.actualState);

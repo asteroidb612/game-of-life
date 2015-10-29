@@ -125,3 +125,19 @@
 * ai
 ** It's pretty challenging if someone is just shooting spaceships randomly 
 *** Unless you get them right away
+* Flush your own territory
+** Get rid of all still life in your territory
+*** User can control all the time?
+*** User needs a resource to activate
+**** Could keep on as long as they want or just a few turns
+* Visual
+** Show the lines the a structure may follow
+*** Hard to predict movement, but maybe just horizontal/vertical
+* Record
+| Who won | What gen | Story?                                              |
+|---------+----------+-----------------------------------------------------|
+| Drew    |      834 | Blocked first shot, then direct hit                 |
+| AI      |      668 | Two quick ones down the pipe; second block failed   |
+| Drew    |     5872 | Lots of D, chaos left, waited to get one through    |
+| Drew    |     4233 | Early minefield middle left, fired till got through | 
+** This tells me that spamming the middle is the best strategy so far  
