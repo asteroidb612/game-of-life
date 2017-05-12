@@ -1,0 +1,12 @@
+{
+  "name": "game-of-death",
+  "version": "0.0.1",
+  "description": "RTS game based on Conway's Automata",
+  "dependencies": {
+    "express": "^4.10.2",
+    "node-gameloop": "^0.1.0",
+    "node-uuid": "^1.4.3",
+    "socket.io": "^1.3.7",
+    "underscore": "^1.8.3"
+  }
+}
