@@ -6,68 +6,74 @@ var io = require('socket.io')(http);
 var uuid = require('node-uuid');
 var gameloop = require('node-gameloop');
 
-var clients = {};
 var game = {
-  ready : false,
+  gameSize : 2,
+  clients : {};
   generation : 0,
+  columns : 180, 
+  rows : 86, 
   running : false,
-  columns : 0,
-  rows : 0,
-  players : []
 };
 
-var ready = {};
+
+//TODO Support Multiple Players
+function createBase() {
+  if (_.size(game.clients) == 0) {
+    return  [[41, 1], [41, 2], [42, 1], [42, 2]];
+  }
+  else {
+    return [[41, 177], [41, 178], [42, 177], [42, 178]]
+  }
+}
+
+
+io.on('connection', function(socket) { //Create new player, let everyone know
+  var id = uuid.v4();
+  socket.emit('id', id);
+  game.clients[id] = {moved: false, base: createBase(), id:id};
+
+  socket.on('disconnect', function() {
+    delete game.clients[id];
+  });
+
+  socket.on('input', function(generation, data){ // TODO Check that generations match up
+    game.clients[id].moved = true;
+    if (data.changed) {
+      io.emit('changes', {player:id, moves:data.moves});
+    }
+    if (_.all(_.pluck(game.clients, 'moved'))) { 
+      _.each(game.clients, function(x) { x.moved = false; }); //Reset Players
+      io.emit('generation', game.generation++); // Advance game.clients 1 generation
+    }
+  });
+
+  if (_.size(game.clients) == gameSize) {
+    io.emit("go", game);
+    io.emit("generation", game.generation)
+  }
+});
 
 app.set('port', (process.env.PORT || 5000));
 app.get('/', function(req, res){
   res.sendFile(__dirname + '/index.html');
 });
-
-io.on('connection', function(socket) {
-
-  //Create new player, let everyone know
-  var id = uuid.v4();
-  clients[id] = {connected: true, moved: false};
-  console.log(id + ' has connected');
-
-  socket.on('disconnect', function() {
-    delete clients[id];
-    console.log(id + 'has disconnected');
-  });
-
-  socket.on('input', function(data){
-    clients[id].moved = true;
-    if (data.changed) {
-      io.emit('changes', {player:id, moves:data.moves});
-    }
-    if (_.all(_.pluck(clients, 'moved'))) { 
-      _.each(clients, function(x) { x.moved = false; }); //Reset Players
-      game.ready = true; // Trigger next tick
-      io.emit('next', {}); // Advance clients 1 generation
-    }
-  });
-});
-
-app.use(express.static(__dirname + '/assets'));
+app.use(express.static(__dirname));
 app.listen(3000);
 app.listen(app.get('port'), function() {
-  console.log('Node app is running on port', app.get('port')); 
 });
-
-var id = gameloop.setGameLoop(function(delta) {
-  if (!game.running) {
-    if (_.size(clients) === 2) {
-      console.log("Game Started");
-      io.emit("starting");
-      game.running = true;
-    }
-  }
-  else {
-    if (game.ready){
-      game.generation += 1;
-      console.log("On tick " + game.generation);
-      game.ready = false;
-      io.emit('tick', {tick: game.generation});
-    }
-  }
-});
+//
+//var id = gameloop.setGameLoop(function(delta) {
+//  if (!game.running) {
+//    if (_.size(clients) === 2) {
+//      io.emit("starting");
+//      game.running = true;
+//    }
+//  }
+//  else {
+//    if (game.ready){
+//      game.generation += 1;
+//      game.ready = false;
+//      io.emit('tick', {tick: game.generation});
+//    }
+//  }
+//});

@@ -25,10 +25,9 @@
   var GOL = {
 
     //Game State
+    generation : 0,
     columns : 0,
     rows : 0,
-
-    generation : 0,
 
     running : false,
     autoplay : true,
@@ -37,8 +36,8 @@
     gameResult : "",
 
     messageLoc : [90, 41],
-    flag : [[41, 1], [41, 2], [42, 1], [42, 2]],
-    enemyFlag : [[41, 177], [41, 178], [42, 177], [42, 178]],
+    //    flag : [[41, 1], [41, 2], [42, 1], [42, 2]],
+    //    enemyFlag : [[41, 177], [41, 178], [42, 177], [42, 178]],
 
     // Clear state
     clear : {
@@ -53,7 +52,7 @@
     },
 
 
-    // DOM elements
+    // Metrics fed to DOM elements
     element : {
       generation : null,
       steptime : null,
@@ -72,7 +71,6 @@
       current: false,
       schedule : false
     },
-
 
     // Grid style
     grid : {
@@ -150,9 +148,8 @@
      */
     init : function() {
       try {
-        this.listLife.init();   // Reset/init algorithm
-        this.loadConfig();      // Load config from URL (autoplay, colors, zoom, ...)
-        this.loadState();       // Load state from URL
+        this.automata.init();   // Reset/init algorithm
+        this.initSocket();      // Connect to server
         this.keepDOMElements(); // Keep DOM References (getElementsById)
         this.canvas.init();     // Init canvas GUI
         this.registerEvents();  // Register event handlers
@@ -164,87 +161,53 @@
     },
 
 
-    /**
-     * Load config from URL
-     */
-    loadConfig : function() {
-      var colors, grid, zoom;
+    initSocket : function() { 
+      this.socket = io();
 
-      this.autoplay = this.helpers.getUrlParameter('autoplay') === '1' ? true : this.autoplay;
-      this.trail.current = this.helpers.getUrlParameter('trail') === '1' ? true : this.trail.current;
+      this.socket.on("id", function(id){
+        this.playerID = id;
+      });
 
-      // Initial color config
-      colors = parseInt(this.helpers.getUrlParameter('colors'), 10);
-      if (isNaN(colors) || colors < 1 || colors > GOL.colors.schemes.length) {
-        colors = 1;
-      }
+      this.socket.on("go", function(game) {
+        this.columns = game.columns;
+        this.rows = game.rows;
+        this.generation = game.generation;
+        this.players = game.clients;
+        this.flag = clients[this.playerID].base;
 
-      // Initial grid config
-      grid = parseInt(this.helpers.getUrlParameter('grid'), 10);
-      if (isNaN(grid) || grid < 1 || grid > GOL.grid.schemes.length) {
-        grid = 1;
-      }
-
-      // Initial zoom config
-      zoom = parseInt(this.helpers.getUrlParameter('zoom'), 10);
-      if (isNaN(zoom) || zoom < 1 || zoom > GOL.zoom.schemes.length) {
-        zoom = 1;
-      }
-
-      this.colors.current = colors - 1;
-      this.grid.current = grid - 1;
-      this.zoom.current = zoom - 1;
-
-      this.rows = this.zoom.schemes[this.zoom.current].rows;
-      this.columns = this.zoom.schemes[this.zoom.current].columns;
-    },
-
-
-    /**
-     * Load world state from URL parameter
-     */
-    loadState : function() {
-      var state, i, j, y, s = this.helpers.getUrlParameter('s');
-
-      if ( s === 'random') {
-        this.randomState();
-      } else {
-        if (s == undefined) {
-          s = this.initialState;
-        }
-
-        state = jsonParse(decodeURI(s));
-
-        for (i = 0; i < state.length; i++) {
-          for (y in state[i]) {
-            for (j = 0 ; j < state[i][y].length ; j++) {
-              this.listLife.addCell(state[i][y][j], parseInt(y, 10), this.listLife.actualState);
-            }
+        for (c in game.clients) {
+          if (!game.clients.hasOwnProperty(c)) { // Prototype object chain shold be discluded
+            continue;
+          }
+          if (c.id != this.playerID){ 
+            this.enemyFlag = c.base;  //TODO Generalize to more people. This just picks the last one.
           }
         }
-      }
+      });
+
+      this.socket.on("generation", function(generation) {
+        this.generation++;
+        var response; 
+        response["gameOver"] = this.gameOver;
+        response["changed"] = this.queueCommitScheduled;
+
+        if (response["changed"]) {
+          response["changes"] = this.automota.queuedState;
+        }
+        socket.emit("input", generation, response);
+      });
+
+      this.socket.on("changes", function(changes) {
+        this.automata.serverState = changes.moves;
+        this.tickScheduled = true;
+      });
     },
-
-
-    /**
-     * Create a random pattern
-     */
-    randomState : function() {
-      var i, liveCells = (this.rows * this.columns) * 0.12;
-
-      for (i = 0; i < liveCells; i++) {
-        this.listLife.addCell(this.helpers.random(0, this.columns - 1), this.helpers.random(0, this.rows - 1), this.listLife.actualState);
-      }
-
-      this.listLife.nextGeneration();
-    },
-
 
     /**
      * Clean up actual state and prepare a new run
      */
     cleanUp : function() {
-      this.listLife.init(); // Reset/init algorithm
+      this.automata.init(); // Reset/init algorithm
       this.prepare();
     },
 
@@ -282,7 +245,7 @@
       this.element.hint = document.getElementById('hint');
     },
 
-     /* registerEvents
+    /* registerEvents
      *  Register event handlers for this session (one time execution)
      */
     registerEvents : function() {
@@ -308,26 +271,29 @@
 
       // Algorithm run
 
-      algorithmTime = (new Date());
+      if (this.tickScheduled) {
+        algorithmTime = (new Date());
 
-      //Does the real work of advancing state of game
-      //Rest of this function does the graphics
-      liveCellNumber = GOL.listLife.nextGeneration();
+        //Does the real work of advancing state of game
+        //Rest of this function does the graphics
+        liveCellNumber = GOL.automata.nextGeneration();
 
-      algorithmTime = (new Date()) - algorithmTime;
+        algorithmTime = (new Date()) - algorithmTime;
+        this.tickScheduled = false;
+      }
 
 
       // Canvas run
 
       guiTime = (new Date());
 
-      for (i = 0; i < GOL.listLife.redrawList.length; i++) {
-        x = GOL.listLife.redrawList[i][0];
-        y = GOL.listLife.redrawList[i][1];
+      for (i = 0; i < GOL.automata.redrawList.length; i++) {
+        x = GOL.automata.redrawList[i][0];
+        y = GOL.automata.redrawList[i][1];
 
-        if (GOL.listLife.redrawList[i][2] === 1) {
+        if (GOL.automata.redrawList[i][2] === 1) {
           GOL.canvas.changeCelltoAlive(x, y);
-        } else if (GOL.listLife.redrawList[i][2] === 2) {
+        } else if (GOL.automata.redrawList[i][2] === 2) {
           GOL.canvas.keepCellAlive(x, y);
         } else {
           GOL.canvas.changeCelltoDead(x, y);
@@ -431,7 +397,7 @@
         }
 
         if (event.keyCode === 67) { // Key: C
-          GOL.listLife.commitScheduled = true;
+          GOL.automata.Scheduled = true;
         } else if (event.keyCode === 82 ) { // Key: R
           GOL.handlers.buttons.run();
         } else if (event.keyCode === 83 ) { // Key: S
@@ -530,11 +496,11 @@
         export_ : function() {
           var i, j, url = '', cellState = '', params = '';
 
-          for (i = 0; i < GOL.listLife.actualState.length; i++) {
-            cellState += '{"'+GOL.listLife.actualState[i][0]+'":[';
+          for (i = 0; i < GOL.automata.actualState.length; i++) {
+            cellState += '{"'+GOL.automata.actualState[i][0]+'":[';
             //cellState += '{"one":[';
-            for (j = 1; j < GOL.listLife.actualState[i].length; j++) {
-              cellState += GOL.listLife.actualState[i][j]+',';
+            for (j = 1; j < GOL.automata.actualState[i].length; j++) {
+              cellState += GOL.automata.actualState[i][j]+',';
             }
             cellState = cellState.substring(0, cellState.length - 1) + ']},';
           }
@@ -636,7 +602,7 @@
 
         for (i = 0 ; i < GOL.columns; i++) {
           for (j = 0 ; j < GOL.rows; j++) {
-            if (GOL.listLife.isAlive(i, j)) {
+            if (GOL.automata.isAlive(i, j)) {
               this.drawCell(i, j, "alive");
             } else {
               this.drawCell(i, j, "false");
@@ -689,6 +655,7 @@
           if (GOL.trail.current && this.age[i][j] < 0) {
             this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].trail[(this.age[i][j] * -1) % GOL.colors.schemes[GOL.colors.current].trail.length];
           } else {
+            //TODO Reduce to one in case of radii implementation
             if (i < 60) {
               this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].home;
             } else if (i < 120) {
@@ -699,38 +666,24 @@
           }
         }
 
-        this.context.fillRect(this.cellSpace + (this.cellSpace * i) + (this.cellSize * i), this.cellSpace + (this.cellSpace * j) + (this.cellSize * j), this.cellSize, this.cellSize);
+        this.context.fillRect(this.cellSpace + (this.cellSpace * i) + (this.cellSize * i),
+          this.cellSpace + (this.cellSpace * j) + (this.cellSize * j),
+          this.cellSize, this.cellSize);
 
       },
 
-
-      /**
-       * switchCell
-       */
-      switchCell : function(i, j) {
-        if (i < 60) { //Rudimentary Zoneing
-          if(GOL.listLife.isAlive(i, j)) {
-            this.changeCelltoDead(i, j);
-            GOL.listLife.removeCell(i, j, GOL.listLife.actualState);
-          }else {
-            this.changeCelltoAlive(i, j);
-            GOL.listLife.addCell(i, j, GOL.listLife.actualState);
-          }
-        }
-      },
 
       //Added by Drew to queue/group cell insertions
       queueCell : function(i, j) {
         if (i < 60) {
-          if (GOL.listLife.isQueued(i, j)) {
+          if (GOL.automata.isQueued(i, j)) {
             this.unqueue(i, j);
-            GOL.listLife.removeCell(i, j, GOL.listLife.queuedState);
+            GOL.automata.removeCell(i, j, GOL.automata.queuedState);
           }else {
             this.queue(i, j);
-            GOL.listLife.addCell(i, j, GOL.listLife.queuedState);
+            GOL.automata.addCell(i, j, GOL.automata.queuedState);
           }
         }
-        console.log(GOL.listLife.queuedState);
       },
 
 
@@ -774,7 +727,7 @@
 
       unqueue: function(i, j) {
         if (i >= 0 && i < GOL.columns && j >=0 && j < GOL.rows) {
-          if (GOL.listLife.isAlive(i, j)) {
+          if (GOL.automata.isAlive(i, j)) {
             this.drawCell(i, j, "alive");
           } else{
             this.drawCell(i, j, "dead");
@@ -784,18 +737,21 @@
 
     },
 
-    //listLife
-    listLife : {
+    //automata
+    automata : {
 
       actualState : [],
       queuedState : [],
-      commitScheduled : false,
+      serverState : [],
+      queueCommitScheduled : false,
+      serverCommitScheduled : false,
       redrawList : [],
 
       init : function () {
         this.actualState = [];
         this.queuedState = [];
-        this.commitScheduled = false;
+        this.queueCommitScheduled = false;
+        this.serverCommitScheduled = false;
       },
 
       nextGeneration : function() {
@@ -816,7 +772,7 @@
             // Get number of live neighbours and remove alive neighbours from deadNeighbours
             neighbours = this.getNeighboursFromAlive(x, y, i, deadNeighbours);
 
-            // Join dead neighbours to check list
+            // Enumerate dead neighbors of live cells
             for (m = 0; m < 8; m++) {
               if (deadNeighbours[m] !== undefined) {
                 key = deadNeighbours[m][0] + ',' + deadNeighbours[m][1]; // Create hashtable key
@@ -840,6 +796,7 @@
         }
 
         // Process dead neighbours
+        // If dead cell has three neighbors, it's now alive
         for (key in allDeadNeighbours) {
           if (allDeadNeighbours[key] === 3) { // Add new Cell
             key = key.split(',');
@@ -853,8 +810,8 @@
         }
 
         // Add in anything from the queue if committing
-        if (this.commitScheduled) {
-          this.commitScheduled = false;
+        if (this.queueCommitScheduled) {
+          this.queueCommitScheduled = false;
           for (i = 0; i < this.queuedState.length; i++) {
             for (j = 1; j < this.queuedState[i].length; j++) {
               x = this.queuedState[i][j];
@@ -864,6 +821,20 @@
             }
           }
           this.queuedState = [];
+        }
+
+        // Add in anything from the Server
+        if (this.serverCommitScheduled) {
+          this.serverCommitScheduled = false;
+          for (i = 0; i < this.serverState.length; i++) {
+            for (j = 1; j < this.serverState[i].length; j++) {
+              x = this.serverState[i][j];
+              y = this.serverState[i][0];
+
+              this.addCell(x, y, newState);
+            }
+          }
+          this.serverState = [];
         }
 
         this.actualState = newState;
@@ -1067,7 +1038,7 @@
 
 
       /**
-       *
+       * Moderately Complicated to efficiently use Data Structure
        */
       addCell : function(x, y, state) {
         if (state.length === 0) {
