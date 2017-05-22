@@ -1,14 +1,14 @@
 var express = require('express');
 var app = express();
 var _ = require('underscore'); 
-var http = require('http').Server(app);
-var io = require('socket.io')(http);
+var server = require('http').createServer(app);
+var io = require('socket.io').listen(server);
 var uuid = require('node-uuid');
 var gameloop = require('node-gameloop');
 
 var game = {
   gameSize : 2,
-  clients : {};
+  clients : {},
   generation : 0,
   columns : 180, 
   rows : 86, 

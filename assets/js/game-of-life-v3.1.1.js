@@ -30,7 +30,7 @@
     rows : 0,
 
     running : false,
-    autoplay : true,
+    autoplay : false,//true,
 
     gameOver : false,
     gameResult : "",
@@ -173,16 +173,14 @@
         this.rows = game.rows;
         this.generation = game.generation;
         this.players = game.clients;
-        this.flag = clients[this.playerID].base;
-
-        for (c in game.clients) {
-          if (!game.clients.hasOwnProperty(c)) { // Prototype object chain shold be discluded
-            continue;
-          }
-          if (c.id != this.playerID){ 
-            this.enemyFlag = c.base;  //TODO Generalize to more people. This just picks the last one.
+        this.enemies = [];
+        for (c in this.players) {
+          if (c.id != this.playerID) {
+            this.enemies[this.enemies.length] = c;
           }
         }
+        this.enemyFlag = this.enemies[0].base
+        this.flag = clients[this.playerID].base;
       });
 
       this.socket.on("generation", function(generation) {
