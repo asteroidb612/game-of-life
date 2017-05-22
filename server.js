@@ -1,8 +1,9 @@
 var express = require('express');
 var app = express();
+var http = require('http').Server(app);
+var io = require('socket.io')(http);
+
 var _ = require('underscore'); 
-var server = require('http').createServer(app);
-var io = require('socket.io').listen(server);
 var uuid = require('node-uuid');
 var gameloop = require('node-gameloop');
 
@@ -29,6 +30,7 @@ function createBase() {
 
 io.on('connection', function(socket) { //Create new player, let everyone know
   var id = uuid.v4();
+  console.log("Player ", id, " Connected");
   socket.emit('id', id);
   game.clients[id] = {moved: false, base: createBase(), id:id};
 
@@ -47,20 +49,20 @@ io.on('connection', function(socket) { //Create new player, let everyone know
     }
   });
 
-  if (_.size(game.clients) == gameSize) {
+  if (_.size(game.clients) == game.gameSize) {
     io.emit("go", game);
     io.emit("generation", game.generation)
   }
 });
 
+app.use('/socket.io', express.static(__dirname + '/node_modules/socket.io-client/dist'));
+app.use(express.static(__dirname));
 app.set('port', (process.env.PORT || 5000));
 app.get('/', function(req, res){
+  console.log("Got Root");
   res.sendFile(__dirname + '/index.html');
 });
-app.use(express.static(__dirname));
-app.listen(3000);
-app.listen(app.get('port'), function() {
-});
+http.listen(3000);
 //
 //var id = gameloop.setGameLoop(function(delta) {
 //  if (!game.running) {
