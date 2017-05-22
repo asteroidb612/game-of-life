@@ -7,6 +7,7 @@
  */
 
 (function () {
+  debugger;
 
   //Stats
   var stats = new Stats();
@@ -44,6 +45,7 @@
       schedule : false
     },
 
+    initialState : '[{"41": [1,2, 177, 178]}, {"42": [1,2, 177, 178]}]',
 
     // Average execution times
     times : {
@@ -62,9 +64,6 @@
         layout : null
       }
     },
-
-    // Initial state
-    initialState : '[{"41": [1,2, 177, 178]}, {"42": [1,2, 177, 178]}]',
 
     // Trail state
     trail : {
@@ -142,6 +141,28 @@
     },
 
     //Motley Functiongs
+    loadState : function() {
+      var state, i, j, y, s = this.helpers.getUrlParameter('s');
+
+      if ( s === 'random') {
+        this.randomState();
+      } else {
+        if (s == undefined) {
+          s = this.initialState;
+        }
+
+        state = jsonParse(decodeURI(s));
+
+        for (i = 0; i < state.length; i++) {
+          for (y in state[i]) {
+            for (j = 0 ; j < state[i][y].length ; j++) {
+              GOL.automata.addCell(state[i][y][j], parseInt(y, 10), this.actualState);
+            }
+          }
+        }
+      }
+    },
+
 
     /**
      * On Load Event
@@ -149,12 +170,13 @@
     init : function() {
       try {
         this.automata.init();   // Reset/init algorithm
-        this.initSocket();      // Connect to server
+        this.loadState();       //TODO Load state from server
         this.keepDOMElements(); // Keep DOM References (getElementsById)
         this.canvas.init();     // Init canvas GUI
         this.registerEvents();  // Register event handlers
-
         this.prepare();
+
+        this.initSocket();      // Connect to server
       } catch (e) {
         alert("Error: "+e);
       }
@@ -170,6 +192,7 @@
       });
 
       this.socket.on("go", function(game) {
+        console.log("Recieved Go");
         GOL.columns = game.columns;
         GOL.rows = game.rows;
         GOL.generation = game.generation;
@@ -182,18 +205,22 @@
         }
         GOL.enemyFlag = GOL.enemies[0].base
         GOL.flag = game.clients[GOL.playerID].base;
+        GOL.tickScheduled = true;
+        GOL.running = true;
+        GOL.nextStep();
       });
 
       this.socket.on("generation", function(generation) {
+        //console.log("Generation ", generation);
         GOL.generation++;
-        var response; 
-        response["gameOver"] = GOL.gameOver;
-        response["changed"] = GOL.queueCommitScheduled;
-
+        var response = {
+          "gameOver": GOL.gameOver, 
+          "changed" : GOL.queueCommitScheduled
+        };
         if (response["changed"]) {
           response["changes"] = this.automota.queuedState;
         }
-        socket.emit("input", generation, response);
+        GOL.socket.emit("input", generation, response);
       });
 
       this.socket.on("changes", function(changes) {
@@ -271,6 +298,7 @@
       // Algorithm run
 
       if (this.tickScheduled) {
+        console.log("Tick for ", GOL.generation);
         algorithmTime = (new Date());
 
         //Does the real work of advancing state of game
