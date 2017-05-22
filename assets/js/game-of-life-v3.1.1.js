@@ -162,32 +162,33 @@
 
 
     initSocket : function() { 
+      //this is GOL within initSocket, BUT NOT WITHIN CALLBACKS
       this.socket = io();
 
       this.socket.on("id", function(id){
-        this.playerID = id;
+        GOL.playerID = id;
       });
 
       this.socket.on("go", function(game) {
-        this.columns = game.columns;
-        this.rows = game.rows;
-        this.generation = game.generation;
-        this.players = game.clients;
-        this.enemies = [];
-        for (c in this.players) {
-          if (c.id != this.playerID) {
-            this.enemies[this.enemies.length] = c;
+        GOL.columns = game.columns;
+        GOL.rows = game.rows;
+        GOL.generation = game.generation;
+        GOL.players = game.clients;
+        GOL.enemies = [];
+        for (c in GOL.players) {
+          if (c.id != GOL.playerID) {
+            GOL.enemies[GOL.enemies.length] = c;
           }
         }
-        this.enemyFlag = this.enemies[0].base
-        this.flag = clients[this.playerID].base;
+        GOL.enemyFlag = GOL.enemies[0].base
+        GOL.flag = game.clients[GOL.playerID].base;
       });
 
       this.socket.on("generation", function(generation) {
-        this.generation++;
+        GOL.generation++;
         var response; 
-        response["gameOver"] = this.gameOver;
-        response["changed"] = this.queueCommitScheduled;
+        response["gameOver"] = GOL.gameOver;
+        response["changed"] = GOL.queueCommitScheduled;
 
         if (response["changed"]) {
           response["changes"] = this.automota.queuedState;
@@ -196,8 +197,8 @@
       });
 
       this.socket.on("changes", function(changes) {
-        this.automata.serverState = changes.moves;
-        this.tickScheduled = true;
+        GOL.automata.serverState = changes.moves;
+        GOL.tickScheduled = true;
       });
     },
 
