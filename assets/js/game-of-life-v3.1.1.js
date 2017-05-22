@@ -7,7 +7,6 @@
  */
 
 (function () {
-  debugger;
 
   //Stats
   var stats = new Stats();
@@ -148,7 +147,7 @@
         this.randomState();
       } else {
         if (s == undefined) {
-          s = this.initialState;
+          s = GOL.initialState;
         }
 
         state = jsonParse(decodeURI(s));
@@ -156,7 +155,7 @@
         for (i = 0; i < state.length; i++) {
           for (y in state[i]) {
             for (j = 0 ; j < state[i][y].length ; j++) {
-              GOL.automata.addCell(state[i][y][j], parseInt(y, 10), this.actualState);
+              GOL.automata.addCell(state[i][y][j], parseInt(y, 10), GOL.automata.actualState);
             }
           }
         }
@@ -168,18 +167,14 @@
      * On Load Event
      */
     init : function() {
-      try {
+//      try {
         this.automata.init();   // Reset/init algorithm
-        this.loadState();       //TODO Load state from server
         this.keepDOMElements(); // Keep DOM References (getElementsById)
-        this.canvas.init();     // Init canvas GUI
         this.registerEvents();  // Register event handlers
-        this.prepare();
-
         this.initSocket();      // Connect to server
-      } catch (e) {
-        alert("Error: "+e);
-      }
+ //     } catch (e) {
+ //       alert("Error: "+e);
+ //     }
     },
 
 
@@ -199,14 +194,17 @@
         GOL.players = game.clients;
         GOL.enemies = [];
         for (c in GOL.players) {
-          if (c.id != GOL.playerID) {
-            GOL.enemies[GOL.enemies.length] = c;
+          if (c.id !== GOL.playerID) {
+            GOL.enemies[GOL.enemies.length] = GOL.players[c];
           }
         }
+        console.log("Playing against ", GOL.enemies);
         GOL.enemyFlag = GOL.enemies[0].base
         GOL.flag = game.clients[GOL.playerID].base;
         GOL.tickScheduled = true;
         GOL.running = true;
+        GOL.canvas.init();     // Init canvas GUI
+        GOL.loadState();       //TODO Load state from server
         GOL.nextStep();
       });
 
@@ -234,28 +232,6 @@
      */
     cleanUp : function() {
       this.automata.init(); // Reset/init algorithm
-      this.prepare();
-    },
-
-
-    /**
-     * Prepare DOM elements and Canvas for a new run
-     */
-    prepare : function() {
-      this.generation = this.times.algorithm = this.times.gui = 0;
-      this.mouseDown = this.clear.schedule = false;
-
-      this.element.generation.innerHTML = '0';
-      this.element.livecells.innerHTML = '0';
-      this.element.steptime.innerHTML = '0 / 0 (0 / 0)';
-
-      this.canvas.clearWorld(); // Reset GUI
-      this.canvas.drawWorld(); // Draw State
-
-      if (this.autoplay) { // Next Flow
-        this.autoplay = false;
-        this.handlers.buttons.run();
-      }
     },
 
 
@@ -675,7 +651,6 @@
         if (state === "queued") {
           this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].queued;
         } else if (state === "alive") {
-
           if (this.age[i][j] > -1)
             this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].alive[this.age[i][j] % GOL.colors.schemes[GOL.colors.current].alive.length];
         } else {
