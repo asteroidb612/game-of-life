@@ -44,7 +44,7 @@
       schedule : false
     },
 
-    initialState : '[{"41": [1,2, 177, 178]}, {"42": [1,2, 177, 178]}]',
+    initialState : '[{"41": [1,2, 177, 178]}, {"42": [1,2, 177, 178]}, {"46": [5,6,7], "45":[7], "44":[6]}]',
 
     // Average execution times
     times : {
@@ -169,7 +169,6 @@
     init : function() {
 //      try {
         this.automata.init();   // Reset/init algorithm
-        this.keepDOMElements(); // Keep DOM References (getElementsById)
         this.registerEvents();  // Register event handlers
         this.initSocket();      // Connect to server
  //     } catch (e) {
@@ -184,6 +183,7 @@
 
       this.socket.on("id", function(id){
         GOL.playerID = id;
+        console.log("I am " + GOL.playerID);
       });
 
       this.socket.on("go", function(game) {
@@ -213,17 +213,20 @@
         GOL.generation++;
         var response = {
           "gameOver": GOL.gameOver, 
-          "changed" : GOL.queueCommitScheduled
+          "changed" : GOL.automata.queueCommitScheduled
         };
         if (response["changed"]) {
-          response["changes"] = this.automota.queuedState;
+          response["moves"] = GOL.automata.queuedState;
+          //console.log("Submitting Changes", response);
         }
+        GOL.tickScheduled = true;;
         GOL.socket.emit("input", generation, response);
       });
 
-      this.socket.on("changes", function(changes) {
+      this.socket.on("changes", function(changes) { // This may only allow one user to make changes at a time
+        console.log("Scheduleing Changes", changes);
         GOL.automata.serverState = changes.moves;
-        GOL.tickScheduled = true;
+        GOL.automata.serverCommitScheduled = true;
       });
     },
 
@@ -234,18 +237,6 @@
       this.automata.init(); // Reset/init algorithm
     },
 
-
-    /**
-     * keepDOMElements
-     * Save DOM references for this session (one time execution)
-     */
-    keepDOMElements : function() {
-      this.element.generation = document.getElementById('generation');
-      this.element.steptime = document.getElementById('steptime');
-      this.element.livecells = document.getElementById('livecells');
-      this.element.messages.layout = document.getElementById('layoutMessages');
-      this.element.hint = document.getElementById('hint');
-    },
 
     /* registerEvents
      *  Register event handlers for this session (one time execution)
@@ -273,7 +264,7 @@
 
       // Algorithm run
 
-      if (this.tickScheduled) {
+      if (GOL.tickScheduled) {
         console.log("Tick for ", GOL.generation);
         algorithmTime = (new Date());
 
@@ -282,7 +273,7 @@
         liveCellNumber = GOL.automata.nextGeneration();
 
         algorithmTime = (new Date()) - algorithmTime;
-        this.tickScheduled = false;
+        GOL.tickScheduled = false;
       }
 
 
@@ -324,16 +315,6 @@
         GOL.colors.schedule = false;
         GOL.canvas.drawWorld();
       }
-
-      // Running Information
-      GOL.generation++;
-      GOL.element.generation.innerHTML = GOL.generation;
-      GOL.element.livecells.innerHTML = liveCellNumber;
-
-      r = 1.0/GOL.generation;
-      GOL.times.algorithm = (GOL.times.algorithm * (1 - r)) + (algorithmTime * r);
-      GOL.times.gui = (GOL.times.gui * (1 - r)) + (guiTime * r);
-      GOL.element.steptime.innerHTML = algorithmTime + ' / '+guiTime+' ('+Math.round(GOL.times.algorithm) + ' / '+Math.round(GOL.times.gui)+')';
 
       // Flow Control
       if (GOL.running) {
@@ -399,8 +380,9 @@
           event = window.event;
         }
 
-        if (event.keyCode === 67) { // Key: C
-          GOL.automata.Scheduled = true;
+        if (event.keyCode === 67) { // Key: Space
+          GOL.automata.queueCommitScheduled= true;
+          console.log("Commit Registered");
         } else if (event.keyCode === 82 ) { // Key: R
           GOL.handlers.buttons.run();
         } else if (event.keyCode === 83 ) { // Key: S

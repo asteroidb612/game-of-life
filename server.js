@@ -13,8 +13,12 @@ var game = {
   generation : 0,
   columns : 180, 
   rows : 86, 
-  running : false,
+  running : true,
 };
+
+process.on('SIGINFO', function() {
+  console.log(game);
+});
 
 function createBase() {
   if (_.size(game.clients) == 0) {
@@ -50,20 +54,20 @@ io.on('connection', function(socket) { //Create new player, let everyone know
         return;
       }
       game.clients[id].moved = true;
+      console.log(id  + " moved");
       if (data.changed) {
+        //console.log(data);
         io.emit('changes', {player:id, moves:data.moves});
       }
       if (_.all(_.pluck(game.clients, 'moved'))) { 
         _.each(game.clients, function(x) { x.moved = false; }); //Reset Players
         io.emit('generation', game.generation++); // Advance game.clients 1 generation
-        console.log("Generation ", game.generation);
       }
     }
   });
 
   if (_.size(game.clients) == game.gameSize) {
     console.log("Beginning Game with\n");
-    game.running = true;
     for (c in game.clients) {
       console.log("Client ", c);
     }
