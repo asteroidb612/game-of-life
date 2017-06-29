@@ -201,9 +201,11 @@
         console.log("Playing against ", GOL.enemies);
         GOL.enemyFlag = GOL.enemies[0].base
         GOL.flag = game.clients[GOL.playerID].base;
+        GOL.automata.init()
         GOL.tickScheduled = true;
         GOL.running = true;
         GOL.canvas.init();     // Init canvas GUI
+        GOL.canvas.drawWorld();
         GOL.loadState();       //TODO Load state from server
         GOL.nextStep();
       });
@@ -213,6 +215,7 @@
         GOL.generation++;
         var response = {
           "gameOver": GOL.gameOver, 
+          "count": GOL.element.livecells,
           "changed" : GOL.automata.queueCommitScheduled
         };
         if (response["changed"]) {
@@ -270,7 +273,7 @@
 
         //Does the real work of advancing state of game
         //Rest of this function does the graphics
-        liveCellNumber = GOL.automata.nextGeneration();
+        GOL.element.livecells = GOL.automata.nextGeneration();
 
         algorithmTime = (new Date()) - algorithmTime;
         GOL.tickScheduled = false;
@@ -793,19 +796,6 @@
           }
         }
 
-        // Add in anything from the queue if committing
-        if (this.queueCommitScheduled) {
-          this.queueCommitScheduled = false;
-          for (i = 0; i < this.queuedState.length; i++) {
-            for (j = 1; j < this.queuedState[i].length; j++) {
-              x = this.queuedState[i][j];
-              y = this.queuedState[i][0];
-
-              this.addCell(x, y, newState);
-            }
-          }
-          this.queuedState = [];
-        }
 
         // Add in anything from the Server
         if (this.serverCommitScheduled) {
@@ -819,6 +809,7 @@
             }
           }
           this.serverState = [];
+          this.queuedState = [];
         }
 
         this.actualState = newState;

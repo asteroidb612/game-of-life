@@ -2,15 +2,21 @@ var express = require('express');
 var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
-
 var _ = require('underscore'); 
 var uuid = require('node-uuid');
-var gameloop = require('node-gameloop');
+
+var fs = require('fs');
+var Log = require('log');
+var log = new Log('debug', fs.createWriteStream('server.log'));
+var screen = new Log();
+
+var clear = require('clear');
 
 var game = {
   gameSize : 2,
   clients : {},
   generation : 0,
+  counts : {},
   columns : 180, 
   rows : 86, 
   running : true,
@@ -21,7 +27,9 @@ process.on('SIGINFO', function() {
 });
 
 function createBase() {
-  if (_.size(game.clients) == 0) {
+  var size = _.size(game.clients);
+  log.debug('creatingBase for %s clients', size)
+  if (size == 0) {
     return  [[41, 1], [41, 2], [42, 1], [42, 2]];
   }
   else {
@@ -32,31 +40,48 @@ function createBase() {
 
 io.on('connection', function(socket) { //Create new player, let everyone know
   var id = uuid.v4();
-  console.log("Player ", id, " Connected");
+  log.debug("Player %s Connected", id);
   socket.emit('id', id);
   game.clients[id] = {moved: false, base: createBase(), id:id};
 
   socket.on('disconnect', function() {
     delete game.clients[id];
-    console.log(id, " left");
+    log.debug("%s left");
     if (_.size(game.clients) < game.gameSize) {
-      game.running = false;
+//      game.running = false;
       game.generation = 0;
-      console.log("Ending Game");
+      log.debug("Ending Game");
+      log.debug(game);
     }
   });
 
   socket.on('input', function(generation, data){ // TODO Check that generations match up
     if (game.running){
       if (data.gameOver) {
-        console.log("Game Over");
+        log.debug("%s ended the game", id);
         game.running = false;
         return;
       }
+      if (!game.counts[generation]){
+        game.counts[generation] = data.count;
+      }
+      else {
+        if (game.counts[generation] != data.count) {
+          log.warning("Clients are out of sync!!");
+          log.warning("Client %s has generation %s", id, generation)
+          log.warning("Server has generation %s", game.generation)
+          game.running = false;
+        }
+      }
       game.clients[id].moved = true;
-      console.log(id  + " moved");
+      clear()
+      screen.info("Generation: %s", game.generation);
+      _.each(game.clients, function(each) {
+        screen.info("Client %s movment: %s", each.id, each.moved);
+      });
       if (data.changed) {
-        //console.log(data);
+        log.debug("Data from client %s in generation %s", id, generation);
+        log.debug(data);
         io.emit('changes', {player:id, moves:data.moves});
       }
       if (_.all(_.pluck(game.clients, 'moved'))) { 
@@ -67,13 +92,12 @@ io.on('connection', function(socket) { //Create new player, let everyone know
   });
 
   if (_.size(game.clients) == game.gameSize) {
-    console.log("Beginning Game with\n");
+    screen.info("Beginning Game with\n");
     for (c in game.clients) {
       console.log("Client ", c);
     }
     io.emit("go", game);
     io.emit("generation", game.generation)
-    console.log("Generation ", game.generation);
   }
 });
 
