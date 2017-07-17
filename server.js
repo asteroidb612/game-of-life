@@ -2,7 +2,7 @@ var express = require('express');
 var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
-var _ = require('underscore'); 
+var _ = require('underscore');
 var uuid = require('node-uuid');
 
 var fs = require('fs');
@@ -17,8 +17,8 @@ var game = {
   clients : {},
   generation : 0,
   counts : {},
-  columns : 180, 
-  rows : 86, 
+  columns : 180,
+  rows : 86,
   running : true,
 };
 
@@ -26,23 +26,22 @@ process.on('SIGINFO', function() {
   console.log(game);
 });
 
-function createBase() {
+function createBaseCoordinates() {
   var size = _.size(game.clients);
   log.debug('creatingBase for %s clients', size)
-  if (size == 0) {
-    return  [[41, 1], [41, 2], [42, 1], [42, 2]];
+  if (size == 0) { //TODO Possibly a concurrency problem
+    return  [22, 368]; //CanvasCoordinates for left base
   }
   else {
-    return [[41, 177], [41, 178], [42, 177], [42, 178]]
+    return [1255, 368]; // Canvas Coordinates for right base
   }
-}
-
+};
 
 io.on('connection', function(socket) { //Create new player, let everyone know
   var id = uuid.v4();
   log.debug("Player %s Connected", id);
   socket.emit('id', id);
-  game.clients[id] = {moved: false, base: createBase(), id:id};
+  game.clients[id] = {moved: false, baseCoordinates: createBaseCoordinates(), id:id};
 
   socket.on('disconnect', function() {
     delete game.clients[id];
@@ -55,11 +54,11 @@ io.on('connection', function(socket) { //Create new player, let everyone know
     }
   });
 
-  socket.on('input', function(generation, data){ // TODO Check that generations match up
+  socket.on('input', function(generation, data){
     if (game.running){
       if (data.gameOver) {
         log.debug("%s ended the game", id);
-        game.running = false;
+        game.running = false;jk
         return;
       }
       if (!game.counts[generation]){
@@ -84,7 +83,7 @@ io.on('connection', function(socket) { //Create new player, let everyone know
         log.debug(data);
         io.emit('changes', {player:id, moves:data.moves});
       }
-      if (_.all(_.pluck(game.clients, 'moved'))) { 
+      if (_.all(_.pluck(game.clients, 'moved'))) {
         _.each(game.clients, function(x) { x.moved = false; }); //Reset Players
         io.emit('generation', game.generation++); // Advance game.clients 1 generation
       }

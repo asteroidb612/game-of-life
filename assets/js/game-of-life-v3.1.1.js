@@ -36,8 +36,6 @@
     gameResult : "",
 
     messageLoc : [90, 41],
-    //    flag : [[41, 1], [41, 2], [42, 1], [42, 2]],
-    //    enemyFlag : [[41, 177], [41, 178], [42, 177], [42, 178]],
 
     // Clear state
     clear : {
@@ -177,8 +175,8 @@
     },
 
 
-    initSocket : function() { 
-      //this is GOL within initSocket, BUT NOT WITHIN CALLBACKS
+    initSocket : function() {
+      //$this is GOL within initSocket, BUT NOT WITHIN CALLBACKS
       this.socket = io();
 
       this.socket.on("id", function(id){
@@ -186,21 +184,23 @@
         console.log("I am " + GOL.playerID);
       });
 
+      /*
+      * Begin playing with parameters from server
+      */
       this.socket.on("go", function(game) {
         console.log("Recieved Go");
         GOL.columns = game.columns;
         GOL.rows = game.rows;
         GOL.generation = game.generation;
+
+        //Player and base assignment
         GOL.players = game.clients;
-        GOL.enemies = [];
+        GOL.player = game.clients[GOL.playerID];
         for (c in GOL.players) {
-          if (c.id !== GOL.playerID) {
-            GOL.enemies[GOL.enemies.length] = GOL.players[c];
-          }
+          c.base = GOL.helpers.baseFromCoordinates(c.baseCoordinates);
         }
-        console.log("Playing against ", GOL.enemies);
-        GOL.enemyFlag = GOL.enemies[0].base
-        GOL.flag = game.clients[GOL.playerID].base;
+
+        //Begin gameplay and graphics
         GOL.automata.init()
         GOL.tickScheduled = true;
         GOL.running = true;
@@ -214,13 +214,12 @@
         //console.log("Generation ", generation);
         GOL.generation++;
         var response = {
-          "gameOver": GOL.gameOver, 
+          "gameOver": GOL.gameOver,
           "count": GOL.element.livecells,
           "changed" : GOL.automata.queueCommitScheduled
         };
         if (response["changed"]) {
           response["moves"] = GOL.automata.queuedState;
-          //console.log("Submitting Changes", response);
         }
         GOL.tickScheduled = true;;
         GOL.socket.emit("input", generation, response);
@@ -343,13 +342,18 @@
        *
        */
       canvasMouseDown : function(event) {
-        var position = GOL.helpers.mousePosition(event);
-        GOL.canvas.queueCell(position[0], position[1]);
+        var coordinates = GOL.helpers.mouseCoordinates(event);
+        var position = GOL.helpers.coordinatePosition(coordinates);
+
+        var r = (GOL.zoom.schemes[GOL.zoom.current].cellSize + 1) * 10
+        if (GOL.helpers.distance(coordinates, GOL.player.baseCoordinates) < r) {
+          GOL.canvas.queueCell(position[0], position[1]);
+        }
+
         GOL.handlers.lastX = position[0];
         GOL.handlers.lastY = position[1];
         GOL.handlers.mouseDown = true;
       },
-
 
       /**
        *
@@ -357,7 +361,6 @@
       canvasMouseUp : function() {
         GOL.handlers.mouseDown = false;
       },
-
 
       /**
        *
@@ -606,6 +609,11 @@
           this.context.font = "36px sans";
           this.context.fillText(GOL.gameResult,  (this.cellSize + this.cellSpace) * GOL.messageLoc[0], (this.cellSize + this.cellSpace) * GOL.messageLoc[1] + 30);
         }
+        this.context.beginPath();
+        this.context.arc(GOL.center[0], GOL.center[1],
+          (GOL.zoom.schemes[GOL.zoom.current].cellSize + 1) * 10,
+          0, 2*Math.PI);
+        this.context.stroke();
       },
 
 
@@ -642,14 +650,7 @@
           if (GOL.trail.current && this.age[i][j] < 0) {
             this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].trail[(this.age[i][j] * -1) % GOL.colors.schemes[GOL.colors.current].trail.length];
           } else {
-            //TODO Reduce to one in case of radii implementation
-            if (i < 60) {
-              this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].home;
-            } else if (i < 120) {
-              this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].dead;
-            } else {
-              this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].enemy;
-            }
+            this.context.fillstyle = GOL.colors.schemes[GOL.colors.current].dead;
           }
         }
 
@@ -797,7 +798,7 @@
         }
 
 
-        // Add in anything from the Server
+        // Add in anything from the nerver
         if (this.serverCommitScheduled) {
           this.serverCommitScheduled = false;
           for (i = 0; i < this.serverState.length; i++) {
@@ -814,9 +815,9 @@
 
         this.actualState = newState;
 
-        // Have either flags been destroyed?
+        // Have either base been destroyed?
 
-        //Convert actualState to flag style state
+        //Convert actualState for easier compare
         var reference = _.flatten(this.actualState.map(function (x) {
           var coordinateList = [];
           for (var i=1; i<x.length; i++) {
@@ -825,20 +826,15 @@
           return coordinateList;
         }), true); //true to only flatten one level
 
-        if (_.intersection(reference, GOL.flag).length < 4) {
-          GOL.gameOver = true;
-          GOL.gameResult = "You Lost";
-          GOL.canvas.drawWorld();
-          GOL.running = false;
-          console.log("Game Over");
-        }
-        if (_.intersection(reference, GOL.enemyFlag).length < 4) { //Assumes enemy has same number of flags
-          GOL.gameOver = true;
-          GOL.gameResult = "You Won!";
-          GOL.canvas.drawWorld();
-          GOL.running = false;
-          console.log("Game Over");
-        }
+        for (p in GOL.players) {
+            if (_.intersection(reference, p.base).length < 4) {
+              GOL.gameOver = true;
+              GOL.gameResult = p.id + " Lost!";
+              GOL.canvas.drawWorld();
+              GOL.running = false;
+              console.log("Game Over");
+            }
+          }
         return alive;
       },
 
@@ -858,7 +854,7 @@
           if (this.actualState[i-1][0] === (y - 1)) {     //Line above exists
             for (k = this.topPointer; k < this.actualState[i-1].length; k++) {
 
-              if (this.actualState[i-1][k] >= (x-1) ) { // If line ahas 
+              if (this.actualState[i-1][k] >= (x-1) ) { // If line ahas
 
                 if (this.actualState[i-1][k] === (x - 1)) {
                   possibleNeighboursList[0] = undefined;
@@ -972,7 +968,7 @@
         return false;
       },
 
-      //TODO: Merge this with isAlive? This is the same code with names switched. 
+      //TODO: Merge this with isAlive? This is the same code with names switched.
       // May be simplest to leave it like this
       isQueued : function(x, y) {
         var i, j;
@@ -1099,7 +1095,7 @@
           if (a[i] !== b[i]) return false;
         }
         return true;
-      }, 
+      },
 
       urlParameters : null, // Cache
 
@@ -1144,11 +1140,10 @@
         }
       },
 
-
       /**
-       *
-       */
-      mousePosition : function (e) {
+      * Location of mosue in Canvas
+      */
+      mouseCoordinates : function (e){
         // http://www.malleus.de/FAQ/getImgMousePos.html
         // http://www.quirksmode.org/js/events_properties.html#position
         var event, x, y, domObject, posx = 0, posy = 0, top = 0, left = 0, cellSize = GOL.zoom.schemes[GOL.zoom.current].cellSize + 1;
@@ -1177,11 +1172,45 @@
         domObject.pageTop = top;
         domObject.pageLeft = left;
 
-        x = Math.ceil(((posx - domObject.pageLeft)/cellSize) - 1);
-        y = Math.ceil(((posy - domObject.pageTop)/cellSize) - 1);
+        x = (posx - domObject.pageLeft);
+        y = (posy - domObject.pageTop);
 
         return [x, y];
-      }
+      },
+
+
+      /**
+      * Location of coordinate in cells
+      */
+      coordinatePosition: function (c) {
+        var x, y, cellSize = GOL.zoom.schemes[GOL.zoom.current].cellSize + 1;
+        x = Math.ceil(c[0]/cellSize - 1);
+        y = Math.ceil(c[1]/cellSize - 1);
+        console.log("Position ", [x, y])
+        return [x, y];
+      },
+
+      /**
+       * Location of mouse in cells
+       */
+      mousePosition : function (e) {
+        return GOL.helpers.coordinatePosition(GOL.helpers.mouseCoordinates(e));
+      },
+
+      //Base cells from coordinates of center
+      baseFromCoordinates : function (center) {
+        var c, x, y;
+        c = GOL.helpers.coordinatePosition(center);
+        x = c[0];
+        y = c[1];
+       return [[x, y], [x+1, y], [x, y+1], [x+1, y+1]];
+       },
+
+       distance : function(p1, p2) {
+         return Math.sqrt(p1[1]*p2[1] + p1[0] *p2[0]);
+       },
+
+
     }
 
   };
