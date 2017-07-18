@@ -1,10 +1,10 @@
 /*jslint onevar: true, undef: false, nomen: true, eqeqeq: true, plusplus: false, bitwise: true, regexp: true, newcap: true, immed: true  */
 
 /**
- * Game of Life - JS & CSS
- * http://pmav.eu
- * 04/Sep/2010
- */
+* Game of Life - JS & CSS
+* http://pmav.eu
+* 04/Sep/2010
+*/
 
 (function () {
 
@@ -42,7 +42,6 @@
       schedule : false
     },
 
-    initialState : '[{"41": [1,2, 177, 178]}, {"42": [1,2, 177, 178]}, {"46": [5,6,7], "45":[7], "44":[6]}]',
 
     // Average execution times
     times : {
@@ -137,7 +136,6 @@
       ]
     },
 
-    //Motley Functiongs
     loadState : function() {
       var state, i, j, y, s = this.helpers.getUrlParameter('s');
 
@@ -160,18 +158,17 @@
       }
     },
 
-
     /**
-     * On Load Event
-     */
+    * On Load Event
+    */
     init : function() {
-//      try {
-        this.automata.init();   // Reset/init algorithm
-        this.registerEvents();  // Register event handlers
-        this.initSocket();      // Connect to server
- //     } catch (e) {
- //       alert("Error: "+e);
- //     }
+      //      try {
+      this.automata.init();   // Reset/init algorithm
+      this.registerEvents();  // Register event handlers
+      this.initSocket();      // Connect to server
+      //     } catch (e) {
+      //       alert("Error: "+e);
+      //     }
     },
 
 
@@ -181,14 +178,13 @@
 
       this.socket.on("id", function(id){
         GOL.playerID = id;
-        console.log("I am " + GOL.playerID);
       });
 
       /*
       * Begin playing with parameters from server
       */
       this.socket.on("go", function(game) {
-        console.log("Recieved Go");
+        GOL.automata.init();
         GOL.columns = game.columns;
         GOL.rows = game.rows;
         GOL.generation = game.generation;
@@ -197,16 +193,19 @@
         GOL.players = game.clients;
         GOL.player = game.clients[GOL.playerID];
         for (c in GOL.players) {
-          c.base = GOL.helpers.baseFromCoordinates(c.baseCoordinates);
+          GOL.players[c].base = GOL.helpers.baseFromCoordinates(GOL.players[c].baseCoordinates);
+          for (var i=0; i<4; i++){
+            var basePosition = GOL.players[c].base[i];
+            GOL.automata.addCell(basePosition.x, basePosition.y, GOL.automata.actualState);
+          }
         }
-
         //Begin gameplay and graphics
-        GOL.automata.init()
+        GOL.initialState = game.initialState;
         GOL.tickScheduled = true;
         GOL.running = true;
         GOL.canvas.init();     // Init canvas GUI
         GOL.canvas.drawWorld();
-        GOL.loadState();       //TODO Load state from server
+        GOL.loadState();
         GOL.nextStep();
       });
 
@@ -226,23 +225,22 @@
       });
 
       this.socket.on("changes", function(changes) { // This may only allow one user to make changes at a time
-        console.log("Scheduleing Changes", changes);
         GOL.automata.serverState = changes.moves;
         GOL.automata.serverCommitScheduled = true;
       });
     },
 
     /**
-     * Clean up actual state and prepare a new run
-     */
+    * Clean up actual state and prepare a new run
+    */
     cleanUp : function() {
       this.automata.init(); // Reset/init algorithm
     },
 
 
     /* registerEvents
-     *  Register event handlers for this session (one time execution)
-     */
+    *  Register event handlers for this session (one time execution)
+    */
     registerEvents : function() {
 
       // Keyboard Events
@@ -267,7 +265,6 @@
       // Algorithm run
 
       if (GOL.tickScheduled) {
-        console.log("Tick for ", GOL.generation);
         algorithmTime = (new Date());
 
         //Does the real work of advancing state of game
@@ -339,47 +336,51 @@
 
 
       /**
-       *
-       */
+      *
+      */
       canvasMouseDown : function(event) {
         var coordinates = GOL.helpers.mouseCoordinates(event);
         var position = GOL.helpers.coordinatePosition(coordinates);
-
-        var r = (GOL.zoom.schemes[GOL.zoom.current].cellSize + 1) * 10
-        if (GOL.helpers.distance(coordinates, GOL.player.baseCoordinates) < r) {
-          GOL.canvas.queueCell(position[0], position[1]);
+        var r = (GOL.zoom.schemes[GOL.zoom.current].cellSize + 1) * 10;
+        var click = [coordinates.x, coordinates.y];
+        var base = [GOL.player.baseCoordinates.x, GOL.player.baseCoordinates.y]
+        if (GOL.helpers.distance(click, base) < r) {
+          GOL.canvas.queueCell(position.x, position.y);
         }
-
-        GOL.handlers.lastX = position[0];
-        GOL.handlers.lastY = position[1];
+        GOL.handlers.lastX = position.x;
+        GOL.handlers.lastY = position.y;
         GOL.handlers.mouseDown = true;
       },
 
       /**
-       *
-       */
+      *
+      */
       canvasMouseUp : function() {
         GOL.handlers.mouseDown = false;
       },
 
       /**
-       *
-       */
+      *
+      */
       canvasMouseMove : function(event) {
         if (GOL.handlers.mouseDown) {
-          var position = GOL.helpers.mousePosition(event);
-          if ((position[0] !== GOL.handlers.lastX) || (position[1] !== GOL.handlers.lastY)) {
-            GOL.canvas.queueCell(position[0], position[1]);
-            GOL.handlers.lastX = position[0];
-            GOL.handlers.lastY = position[1];
+          var coordinates = GOL.helpers.mouseCoordinates(event);
+          var position = GOL.helpers.coordinatePosition(coordinates);
+          var r = (GOL.zoom.schemes[GOL.zoom.current].cellSize + 1) * 10;
+          var click = [coordinates.x, coordinates.y];
+          var base = [GOL.player.baseCoordinates.x, GOL.player.baseCoordinates.y]
+          if (GOL.helpers.distance(click, base) < r) {
+            GOL.canvas.queueCell(position.x, position.y);
           }
+          GOL.handlers.lastX = position.x;
+          GOL.handlers.lastY = position.y;
         }
       },
 
 
       /**
-       *
-       */
+      *
+      */
       keyboard : function(e) {
         var event = e;
         if (!event) {
@@ -388,7 +389,6 @@
 
         if (event.keyCode === 67) { // Key: Space
           GOL.automata.queueCommitScheduled= true;
-          console.log("Commit Registered");
         } else if (event.keyCode === 82 ) { // Key: R
           GOL.handlers.buttons.run();
         } else if (event.keyCode === 83 ) { // Key: S
@@ -400,10 +400,10 @@
       buttons : {
 
         /**
-         * Button Handler - Run
-         */
+        * Button Handler - Run
+        */
         run : function() {
-          GOL.element.hint.style.display = 'none';
+          //GOL.element.hint.style.display = 'none';
 
           GOL.running = !GOL.running;
           if (GOL.running) {
@@ -416,8 +416,8 @@
 
 
         /**
-         * Button Handler - Next Step - One Step only
-         */
+        * Button Handler - Next Step - One Step only
+        */
         step : function() {
           if (!GOL.running) {
             GOL.nextStep();
@@ -426,8 +426,8 @@
 
 
         /**
-         * Button Handler - Clear World
-         */
+        * Button Handler - Clear World
+        */
         clear : function() {
           if (GOL.running) {
             GOL.clear.schedule = true;
@@ -440,8 +440,8 @@
 
 
         /**
-         * Button Handler - Remove/Add Trail
-         */
+        * Button Handler - Remove/Add Trail
+        */
         trail : function() {
           GOL.element.messages.layout.innerHTML = GOL.trail.current ? 'Trail is Off' : 'Trail is On';
           GOL.trail.current = !GOL.trail.current;
@@ -454,8 +454,8 @@
 
 
         /**
-         *
-         */
+        *
+        */
         colors : function() {
           GOL.colors.current = (GOL.colors.current + 1) % GOL.colors.schemes.length;
           GOL.element.messages.layout.innerHTML = 'Color Scheme #' + (GOL.colors.current + 1);
@@ -468,8 +468,8 @@
 
 
         /**
-         *
-         */
+        *
+        */
         grid : function() {
           GOL.grid.current = (GOL.grid.current + 1) % GOL.grid.schemes.length;
           GOL.element.messages.layout.innerHTML = 'Grid Scheme #' + (GOL.grid.current + 1);
@@ -482,8 +482,8 @@
 
 
         /**
-         * Button Handler - Export State
-         */
+        * Button Handler - Export State
+        */
         export_ : function() {
           var i, j, url = '', cellState = '', params = '';
 
@@ -502,11 +502,11 @@
             url = (window.location.href.indexOf('?') === -1) ? window.location.href : window.location.href.slice(0, window.location.href.indexOf('?'));
 
             params = '?autoplay=0' +
-              '&trail=' + (GOL.trail.current ? '1' : '0') +
-              '&grid=' + (GOL.grid.current + 1) +
-              '&colors=' + (GOL.colors.current + 1) +
-              '&zoom=' + (GOL.zoom.current + 1) +
-              '&s=['+ cellState +']';
+            '&trail=' + (GOL.trail.current ? '1' : '0') +
+            '&grid=' + (GOL.grid.current + 1) +
+            '&colors=' + (GOL.colors.current + 1) +
+            '&zoom=' + (GOL.zoom.current + 1) +
+            '&s=['+ cellState +']';
 
             document.getElementById('exportUrlLink').href = params;
             document.getElementById('exportTinyUrlLink').href = 'http://tinyurl.com/api-create.php?url='+ url + params;
@@ -530,8 +530,8 @@
 
 
       /**
-       * init
-       */
+      * init
+      */
       init : function() {
 
         this.canvas = document.getElementById('canvas');
@@ -549,8 +549,8 @@
 
 
       /**
-       * clearWorld
-       */
+      * clearWorld
+      */
       clearWorld : function () {
         var i, j;
 
@@ -566,8 +566,8 @@
 
 
       /**
-       * drawWorld
-       */
+      * drawWorld
+      */
       drawWorld : function() {
         var i, j;
 
@@ -610,74 +610,72 @@
           this.context.fillText(GOL.gameResult,  (this.cellSize + this.cellSpace) * GOL.messageLoc[0], (this.cellSize + this.cellSpace) * GOL.messageLoc[1] + 30);
         }
         this.context.beginPath();
-        this.context.arc(GOL.center[0], GOL.center[1],
+        this.context.arc(GOL.player.baseCoordinates.x, GOL.player.baseCoordinates.y,
           (GOL.zoom.schemes[GOL.zoom.current].cellSize + 1) * 10,
           0, 2*Math.PI);
-        this.context.stroke();
-      },
+          this.context.stroke();
+        },
 
 
-      /**
-       * setNoGridOn
-       */
-      setNoGridOn : function() {
-        this.cellSize = GOL.zoom.schemes[GOL.zoom.current].cellSize + 1;
-        this.cellSpace = 0;
-      },
+        /**
+        * setNoGridOn
+        */
+        setNoGridOn : function() {
+          this.cellSize = GOL.zoom.schemes[GOL.zoom.current].cellSize + 1;
+          this.cellSpace = 0;
+        },
 
 
-      /**
-       * setNoGridOff
-       */
-      setNoGridOff : function() {
-        this.cellSize = GOL.zoom.schemes[GOL.zoom.current].cellSize;
-        this.cellSpace = 1;
-      },
+        /**
+        * setNoGridOff
+        */
+        setNoGridOff : function() {
+          this.cellSize = GOL.zoom.schemes[GOL.zoom.current].cellSize;
+          this.cellSpace = 1;
+        },
 
 
-      /**
-       * drawCell
-       */
-      //TODO: This should be a switch statement on state, right?
-      drawCell : function (i, j, state) {
+        /**
+        * drawCell
+        */
+        //TODO: This should be a switch statement on state, right?
+        drawCell : function (i, j, state) {
 
-        if (state === "queued") {
-          this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].queued;
-        } else if (state === "alive") {
-          if (this.age[i][j] > -1)
+          if (state === "queued") {
+            this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].queued;
+          } else if (state === "alive") {
+            if (this.age[i][j] > -1)
             this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].alive[this.age[i][j] % GOL.colors.schemes[GOL.colors.current].alive.length];
-        } else {
+          } else { //State === "dead'"
           if (GOL.trail.current && this.age[i][j] < 0) {
             this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].trail[(this.age[i][j] * -1) % GOL.colors.schemes[GOL.colors.current].trail.length];
           } else {
-            this.context.fillstyle = GOL.colors.schemes[GOL.colors.current].dead;
+            this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].dead;
           }
         }
 
         this.context.fillRect(this.cellSpace + (this.cellSpace * i) + (this.cellSize * i),
-          this.cellSpace + (this.cellSpace * j) + (this.cellSize * j),
-          this.cellSize, this.cellSize);
+        this.cellSpace + (this.cellSpace * j) + (this.cellSize * j),
+        this.cellSize, this.cellSize);
 
       },
 
 
       //Added by Drew to queue/group cell insertions
       queueCell : function(i, j) {
-        if (i < 60) {
-          if (GOL.automata.isQueued(i, j)) {
-            this.unqueue(i, j);
-            GOL.automata.removeCell(i, j, GOL.automata.queuedState);
-          }else {
-            this.queue(i, j);
-            GOL.automata.addCell(i, j, GOL.automata.queuedState);
-          }
+        if (GOL.automata.isQueued(i, j)) {
+          this.unqueue(i, j);
+          GOL.automata.removeCell(i, j, GOL.automata.queuedState);
+        }else {
+          this.queue(i, j);
+          GOL.automata.addCell(i, j, GOL.automata.queuedState);
         }
       },
 
 
       /**
-       * keepCellAlive
-       */
+      * keepCellAlive
+      */
       keepCellAlive : function(i, j) {
         if (i >= 0 && i < GOL.columns && j >=0 && j < GOL.rows) {
           this.age[i][j]++;
@@ -687,8 +685,8 @@
 
 
       /**
-       * changeCelltoAlive
-       */
+      * changeCelltoAlive
+      */
       changeCelltoAlive : function(i, j) {
         if (i >= 0 && i < GOL.columns && j >=0 && j < GOL.rows) {
           this.age[i][j] = 1;
@@ -698,8 +696,8 @@
 
 
       /**
-       * changeCelltoDead
-       */
+      * changeCelltoDead
+      */
       changeCelltoDead : function(i, j) {
         if (i >= 0 && i < GOL.columns && j >=0 && j < GOL.rows) {
           this.age[i][j] = -this.age[i][j]; // Keep trail
@@ -821,20 +819,21 @@
         var reference = _.flatten(this.actualState.map(function (x) {
           var coordinateList = [];
           for (var i=1; i<x.length; i++) {
-            coordinateList.push([x[0], x[i]]);
+            coordinateList.push({y: x[0], x:x[i]});
           }
           return coordinateList;
         }), true); //true to only flatten one level
 
         for (p in GOL.players) {
-            if (_.intersection(reference, p.base).length < 4) {
-              GOL.gameOver = true;
-              GOL.gameResult = p.id + " Lost!";
-              GOL.canvas.drawWorld();
-              GOL.running = false;
-              console.log("Game Over");
-            }
+          if (_.intersection(reference, GOL.players[p].base).length < 4) {
+            GOL.gameOver = true;
+            GOL.gameResult = p + " Lost!";
+            GOL.running = false;
+            console.log("Game Over");
+            console.log(GOL.gameResult);
+            GOL.canvas.drawWorld();
           }
+        }
         return alive;
       },
 
@@ -844,379 +843,382 @@
       bottomPointer : 1,
 
       /**
-       *
-       */
+      *
+      */
       getNeighboursFromAlive : function (x, y, i, possibleNeighboursList) {
         var neighbours = 0, k;
 
         // Top
         if (this.actualState[i-1] !== undefined) {     //Line isn't lowest line
-          if (this.actualState[i-1][0] === (y - 1)) {     //Line above exists
-            for (k = this.topPointer; k < this.actualState[i-1].length; k++) {
+        if (this.actualState[i-1][0] === (y - 1)) {     //Line above exists
+          for (k = this.topPointer; k < this.actualState[i-1].length; k++) {
 
-              if (this.actualState[i-1][k] >= (x-1) ) { // If line ahas
+            if (this.actualState[i-1][k] >= (x-1) ) { // If line ahas
 
-                if (this.actualState[i-1][k] === (x - 1)) {
-                  possibleNeighboursList[0] = undefined;
-                  this.topPointer = k + 1;
-                  neighbours++;
-                }
-
-                if (this.actualState[i-1][k] === x) {
-                  possibleNeighboursList[1] = undefined;
-                  this.topPointer = k;
-                  neighbours++;
-                }
-
-                if (this.actualState[i-1][k] === (x + 1)) {
-                  possibleNeighboursList[2] = undefined;
-
-                  if (k == 1) {
-                    this.topPointer = 1;
-                  } else {
-                    this.topPointer = k - 1;
-                  }
-
-                  neighbours++;
-                }
-
-                if (this.actualState[i-1][k] > (x + 1)) {
-                  break;
-                }
-              }
-            }
-          }
-        }
-
-        // Middle
-        for (k = 1; k < this.actualState[i].length; k++) {
-          if (this.actualState[i][k] >= (x - 1)) {
-
-            if (this.actualState[i][k] === (x - 1)) {
-              possibleNeighboursList[3] = undefined;
-              neighbours++;
-            }
-
-            if (this.actualState[i][k] === (x + 1)) {
-              possibleNeighboursList[4] = undefined;
-              neighbours++;
-            }
-
-            if (this.actualState[i][k] > (x + 1)) {
-              break;
-            }
-          }
-        }
-
-        // Bottom
-        if (this.actualState[i+1] !== undefined) {
-          if (this.actualState[i+1][0] === (y + 1)) {
-            for (k = this.bottomPointer; k < this.actualState[i+1].length; k++) {
-              if (this.actualState[i+1][k] >= (x - 1)) {
-
-                if (this.actualState[i+1][k] === (x - 1)) {
-                  possibleNeighboursList[5] = undefined;
-                  this.bottomPointer = k + 1;
-                  neighbours++;
-                }
-
-                if (this.actualState[i+1][k] === x) {
-                  possibleNeighboursList[6] = undefined;
-                  this.bottomPointer = k;
-                  neighbours++;
-                }
-
-                if (this.actualState[i+1][k] === (x + 1)) {
-                  possibleNeighboursList[7] = undefined;
-
-                  if (k == 1) {
-                    this.bottomPointer = 1;
-                  } else {
-                    this.bottomPointer = k - 1;
-                  }
-
-                  neighbours++;
-                }
-
-                if (this.actualState[i+1][k] > (x + 1)) {
-                  break;
-                }
-              }
-            }
-          }
-        }
-
-        return neighbours;
-      },
-
-
-      /**
-       *
-       */
-      isAlive : function(x, y) {
-        var i, j;
-
-        for (i = 0; i < this.actualState.length; i++) {
-          if (this.actualState[i][0] === y) {
-            for (j = 1; j < this.actualState[i].length; j++) {
-              if (this.actualState[i][j] === x) {
-                return true;
-              }
-            }
-          }
-        }
-        return false;
-      },
-
-      //TODO: Merge this with isAlive? This is the same code with names switched.
-      // May be simplest to leave it like this
-      isQueued : function(x, y) {
-        var i, j;
-
-        for (i = 0; i < this.queuedState.length; i++) {
-          if (this.queuedState[i][0] === y) {
-            for (j = 1; j < this.queuedState[i].length; j++) {
-              if (this.queuedState[i][j] === x) {
-                return true;
-              }
-            }
-          }
-        }
-        return false;
-      },
-
-      /**
-       *
-       */
-      removeCell : function(x, y, state) {
-        var i, j;
-
-        for (i = 0; i < state.length; i++) {
-          if (state[i][0] === y) {
-
-            if (state[i].length === 2) { // Remove all Row
-              state.splice(i, 1);
-            } else { // Remove Element
-              for (j = 1; j < state[i].length; j++) {
-                if (state[i][j] === x) {
-                  state[i].splice(j, 1);
-                }
-              }
-            }
-          }
-        }
-      },
-
-
-      /**
-       * Moderately Complicated to efficiently use Data Structure
-       */
-      addCell : function(x, y, state) {
-        if (state.length === 0) {
-          state.push([y, x]);
-          return;
-        }
-
-        var k, n, m, tempRow, newState = [], added;
-
-        if (y < state[0][0]) { // Add to Head
-          newState = [[y,x]];
-          for (k = 0; k < state.length; k++) {
-            newState[k+1] = state[k];
-          }
-
-          for (k = 0; k < newState.length; k++) {
-            state[k] = newState[k];
-          }
-
-          return;
-
-        } else if (y > state[state.length - 1][0]) { // Add to Tail
-          state[state.length] = [y, x];
-          return;
-
-        } else { // Add to Middle
-
-          for (n = 0; n < state.length; n++) {
-            if (state[n][0] === y) { // Level Exists
-              tempRow = [];
-              added = false;
-              for (m = 1; m < state[n].length; m++) {
-                if ((!added) && (x < state[n][m])) {
-                  tempRow.push(x);
-                  added = !added;
-                }
-                tempRow.push(state[n][m]);
-              }
-              tempRow.unshift(y);
-              if (!added) {
-                tempRow.push(x);
-              }
-              state[n] = tempRow;
-              return;
-            }
-
-            if (y < state[n][0]) { // Create Level
-              newState = [];
-              for (k = 0; k < state.length; k++) {
-                if (k === n) {
-                  newState[k] = [y,x];
-                  newState[k+1] = state[k];
-                } else if (k < n) {
-                  newState[k] = state[k];
-                } else if (k > n) {
-                  newState[k+1] = state[k];
-                }
+              if (this.actualState[i-1][k] === (x - 1)) {
+                possibleNeighboursList[0] = undefined;
+                this.topPointer = k + 1;
+                neighbours++;
               }
 
-              for (k = 0; k < newState.length; k++) {
-                state[k] = newState[k];
+              if (this.actualState[i-1][k] === x) {
+                possibleNeighboursList[1] = undefined;
+                this.topPointer = k;
+                neighbours++;
               }
 
-              return;
+              if (this.actualState[i-1][k] === (x + 1)) {
+                possibleNeighboursList[2] = undefined;
+
+                if (k == 1) {
+                  this.topPointer = 1;
+                } else {
+                  this.topPointer = k - 1;
+                }
+
+                neighbours++;
+              }
+
+              if (this.actualState[i-1][k] > (x + 1)) {
+                break;
+              }
             }
           }
         }
       }
 
-    },
+      // Middle
+      for (k = 1; k < this.actualState[i].length; k++) {
+        if (this.actualState[i][k] >= (x - 1)) {
 
-    //Helpers
-    helpers : {
-      arraysEqual : function (a, b) {
-        if (a === b) return true;
-        if (a == null || b == null) return false;
-        if (a.length != b.length) return false;
+          if (this.actualState[i][k] === (x - 1)) {
+            possibleNeighboursList[3] = undefined;
+            neighbours++;
+          }
 
-        // If you don't care about the order of the elements inside
-        // the array, you should sort both arrays here.
+          if (this.actualState[i][k] === (x + 1)) {
+            possibleNeighboursList[4] = undefined;
+            neighbours++;
+          }
 
-        for (var i = 0; i < a.length; ++i) {
-          if (a[i] !== b[i]) return false;
-        }
-        return true;
-      },
-
-      urlParameters : null, // Cache
-
-
-      /**
-       * Return a random integer from [min, max]
-       */
-      random : function(min, max) {
-        return min <= max ? min + Math.round(Math.random() * (max - min)) : null;
-      },
-
-
-      /**
-       * Get URL Parameters
-       */
-      getUrlParameter : function(name) {
-        if (this.urlParameters === null) { // Cache miss
-          var hash, hashes, i;
-
-          this.urlParameters = [];
-          hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
-
-          for (i = 0; i < hashes.length; i++) {
-            hash = hashes[i].split('=');
-            this.urlParameters.push(hash[0]);
-            this.urlParameters[hash[0]] = hash[1];
+          if (this.actualState[i][k] > (x + 1)) {
+            break;
           }
         }
+      }
 
-        return this.urlParameters[name];
-      },
+      // Bottom
+      if (this.actualState[i+1] !== undefined) {
+        if (this.actualState[i+1][0] === (y + 1)) {
+          for (k = this.bottomPointer; k < this.actualState[i+1].length; k++) {
+            if (this.actualState[i+1][k] >= (x - 1)) {
 
+              if (this.actualState[i+1][k] === (x - 1)) {
+                possibleNeighboursList[5] = undefined;
+                this.bottomPointer = k + 1;
+                neighbours++;
+              }
 
-      /**
-       * Register Event
-       */
-      registerEvent : function (element, event, handler, capture) {
-        if (/msie/i.test(navigator.userAgent)) {
-          element.attachEvent('on' + event, handler);
-        } else {
-          element.addEventListener(event, handler, capture);
+              if (this.actualState[i+1][k] === x) {
+                possibleNeighboursList[6] = undefined;
+                this.bottomPointer = k;
+                neighbours++;
+              }
+
+              if (this.actualState[i+1][k] === (x + 1)) {
+                possibleNeighboursList[7] = undefined;
+
+                if (k == 1) {
+                  this.bottomPointer = 1;
+                } else {
+                  this.bottomPointer = k - 1;
+                }
+
+                neighbours++;
+              }
+
+              if (this.actualState[i+1][k] > (x + 1)) {
+                break;
+              }
+            }
+          }
         }
-      },
+      }
 
-      /**
-      * Location of mosue in Canvas
-      */
-      mouseCoordinates : function (e){
-        // http://www.malleus.de/FAQ/getImgMousePos.html
-        // http://www.quirksmode.org/js/events_properties.html#position
-        var event, x, y, domObject, posx = 0, posy = 0, top = 0, left = 0, cellSize = GOL.zoom.schemes[GOL.zoom.current].cellSize + 1;
+      return neighbours;
+    },
 
-        event = e;
-        if (!event) {
-          event = window.event;
+
+    /**
+    *
+    */
+    isAlive : function(x, y) {
+      var i, j;
+
+      for (i = 0; i < this.actualState.length; i++) {
+        if (this.actualState[i][0] === y) {
+          for (j = 1; j < this.actualState[i].length; j++) {
+            if (this.actualState[i][j] === x) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    },
+
+    //TODO: Merge this with isAlive? This is the same code with names switched.
+    // May be simplest to leave it like this
+    isQueued : function(x, y) {
+      var i, j;
+
+      for (i = 0; i < this.queuedState.length; i++) {
+        if (this.queuedState[i][0] === y) {
+          for (j = 1; j < this.queuedState[i].length; j++) {
+            if (this.queuedState[i][j] === x) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    },
+
+    /**
+    *
+    */
+    removeCell : function(x, y, state) {
+      var i, j;
+
+      for (i = 0; i < state.length; i++) {
+        if (state[i][0] === y) {
+
+          if (state[i].length === 2) { // Remove all Row
+            state.splice(i, 1);
+          } else { // Remove Element
+            for (j = 1; j < state[i].length; j++) {
+              if (state[i][j] === x) {
+                state[i].splice(j, 1);
+              }
+            }
+          }
+        }
+      }
+    },
+
+
+    /**
+    * Moderately Complicated to efficiently use Data Structure
+    */
+    addCell : function(x, y, state) {
+      if (state.length === 0) {
+        state.push([y, x]);
+        return;
+      }
+
+      var k, n, m, tempRow, newState = [], added;
+
+      if (y < state[0][0]) { // Add to Head
+        newState = [[y,x]];
+        for (k = 0; k < state.length; k++) {
+          newState[k+1] = state[k];
         }
 
-        if (event.pageX || event.pageY) 	{
-          posx = event.pageX;
-          posy = event.pageY;
-        } else if (event.clientX || event.clientY) 	{
-          posx = event.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
-          posy = event.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+        for (k = 0; k < newState.length; k++) {
+          state[k] = newState[k];
         }
 
-        domObject = event.target || event.srcElement;
+        return;
 
-        while ( domObject.offsetParent ) {
-          left += domObject.offsetLeft;
-          top += domObject.offsetTop;
-          domObject = domObject.offsetParent;
+      } else if (y > state[state.length - 1][0]) { // Add to Tail
+        state[state.length] = [y, x];
+        return;
+
+      } else { // Add to Middle
+
+        for (n = 0; n < state.length; n++) {
+          if (state[n][0] === y) { // Level Exists
+            tempRow = [];
+            added = false;
+            for (m = 1; m < state[n].length; m++) {
+              if ((!added) && (x < state[n][m])) {
+                tempRow.push(x);
+                added = !added;
+              }
+              tempRow.push(state[n][m]);
+            }
+            tempRow.unshift(y);
+            if (!added) {
+              tempRow.push(x);
+            }
+            state[n] = tempRow;
+            return;
+          }
+
+          if (y < state[n][0]) { // Create Level
+            newState = [];
+            for (k = 0; k < state.length; k++) {
+              if (k === n) {
+                newState[k] = [y,x];
+                newState[k+1] = state[k];
+              } else if (k < n) {
+                newState[k] = state[k];
+              } else if (k > n) {
+                newState[k+1] = state[k];
+              }
+            }
+
+            for (k = 0; k < newState.length; k++) {
+              state[k] = newState[k];
+            }
+
+            return;
+          }
         }
-
-        domObject.pageTop = top;
-        domObject.pageLeft = left;
-
-        x = (posx - domObject.pageLeft);
-        y = (posy - domObject.pageTop);
-
-        return [x, y];
-      },
-
-
-      /**
-      * Location of coordinate in cells
-      */
-      coordinatePosition: function (c) {
-        var x, y, cellSize = GOL.zoom.schemes[GOL.zoom.current].cellSize + 1;
-        x = Math.ceil(c[0]/cellSize - 1);
-        y = Math.ceil(c[1]/cellSize - 1);
-        console.log("Position ", [x, y])
-        return [x, y];
-      },
-
-      /**
-       * Location of mouse in cells
-       */
-      mousePosition : function (e) {
-        return GOL.helpers.coordinatePosition(GOL.helpers.mouseCoordinates(e));
-      },
-
-      //Base cells from coordinates of center
-      baseFromCoordinates : function (center) {
-        var c, x, y;
-        c = GOL.helpers.coordinatePosition(center);
-        x = c[0];
-        y = c[1];
-       return [[x, y], [x+1, y], [x, y+1], [x+1, y+1]];
-       },
-
-       distance : function(p1, p2) {
-         return Math.sqrt(p1[1]*p2[1] + p1[0] *p2[0]);
-       },
-
-
+      }
     }
 
-  };
+  },
 
-  GOL.helpers.registerEvent(window, 'load', function () {
-    GOL.init();
-  }, false);
+  //Helpers
+  helpers : {
+    arraysEqual : function (a, b) {
+      if (a === b) return true;
+      if (a == null || b == null) return false;
+      if (a.length != b.length) return false;
+
+      // If you don't care about the order of the elements inside
+      // the array, you should sort both arrays here.
+
+      for (var i = 0; i < a.length; ++i) {
+        if (a[i] !== b[i]) return false;
+      }
+      return true;
+    },
+
+    urlParameters : null, // Cache
+
+
+    /**
+    * Return a random integer from [min, max]
+    */
+    random : function(min, max) {
+      return min <= max ? min + Math.round(Math.random() * (max - min)) : null;
+    },
+
+
+    /**
+    * Get URL Parameters
+    */
+    getUrlParameter : function(name) {
+      if (this.urlParameters === null) { // Cache miss
+        var hash, hashes, i;
+
+        this.urlParameters = [];
+        hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+
+        for (i = 0; i < hashes.length; i++) {
+          hash = hashes[i].split('=');
+          this.urlParameters.push(hash[0]);
+          this.urlParameters[hash[0]] = hash[1];
+        }
+      }
+
+      return this.urlParameters[name];
+    },
+
+
+    /**
+    * Register Event
+    */
+    registerEvent : function (element, event, handler, capture) {
+      if (/msie/i.test(navigator.userAgent)) {
+        element.attachEvent('on' + event, handler);
+      } else {
+        element.addEventListener(event, handler, capture);
+      }
+    },
+
+    /**
+    * Location of mosue in Canvas
+    */
+    mouseCoordinates : function (e){
+      // http://www.malleus.de/FAQ/getImgMousePos.html
+      // http://www.quirksmode.org/js/events_properties.html#position
+      var event, x, y, domObject, posx = 0, posy = 0, top = 0, left = 0, cellSize = GOL.zoom.schemes[GOL.zoom.current].cellSize + 1;
+
+      event = e;
+      if (!event) {
+        event = window.event;
+      }
+
+      if (event.pageX || event.pageY) 	{
+        posx = event.pageX;
+        posy = event.pageY;
+      } else if (event.clientX || event.clientY) 	{
+        posx = event.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+        posy = event.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+      }
+
+      domObject = event.target || event.srcElement;
+
+      while ( domObject.offsetParent ) {
+        left += domObject.offsetLeft;
+        top += domObject.offsetTop;
+        domObject = domObject.offsetParent;
+      }
+
+      domObject.pageTop = top;
+      domObject.pageLeft = left;
+
+      return {
+        x:posx - domObject.pageLeft,
+        y:posy - domObject.pageTop
+      };
+    },
+
+
+    /**
+    * Location of coordinate in cells
+    */
+    coordinatePosition: function (c) {
+      var x, y, cellSize = GOL.zoom.schemes[GOL.zoom.current].cellSize + 1;
+      return {
+        x:  Math.ceil(c.x/cellSize - 1),
+        y:  Math.ceil(c.y/cellSize - 1)
+      };
+    },
+
+    /**
+    * Location of mouse in cells
+    */
+    mousePosition : function (e) {
+      return GOL.helpers.coordinatePosition(GOL.helpers.mouseCoordinates(e));
+    },
+
+    //Base cells from coordinates of center
+    baseFromCoordinates : function (center) {
+      var c = GOL.helpers.coordinatePosition(center);
+      return [
+        {x: c.x, y: c.y},
+        {x: c.x+1, y: c.y},
+        {x: c.x, y:c.y+1},
+        {x: c.x+1, y:c.y+1}
+      ];
+    },
+
+    distance : function(p1, p2) {
+      var a = p1[1]-p2[1];
+      var b = p1[0]-p2[0];
+      return Math.sqrt(a*a + b*b);
+    },
+
+  }
+
+};
+
+GOL.helpers.registerEvent(window, 'load', function () {
+  GOL.init();
+}, false);
 
 }());

@@ -20,20 +20,31 @@ var game = {
   columns : 180,
   rows : 86,
   running : true,
+  initialState : '[{"46": [5,6,7], "45":[7], "44":[6]}]'
 };
 
 process.on('SIGINFO', function() {
   console.log(game);
+  game = {
+    gameSize : 2,
+    clients : {},
+    generation : 0,
+    counts : {},
+    columns : 180,
+    rows : 86,
+    running : true,
+    initialState : '[{"46": [5,6,7], "45":[7], "44":[6]}]'
+  };
 });
 
 function createBaseCoordinates() {
   var size = _.size(game.clients);
   log.debug('creatingBase for %s clients', size)
   if (size == 0) { //TODO Possibly a concurrency problem
-    return  [22, 368]; //CanvasCoordinates for left base
+    return  {x:22, y:368}; //CanvasCoordinates for left base
   }
   else {
-    return [1255, 368]; // Canvas Coordinates for right base
+    return {x:1255, y:368}; // Canvas Coordinates for right base
   }
 };
 
@@ -58,7 +69,7 @@ io.on('connection', function(socket) { //Create new player, let everyone know
     if (game.running){
       if (data.gameOver) {
         log.debug("%s ended the game", id);
-        game.running = false;jk
+        game.running = false;
         return;
       }
       if (!game.counts[generation]){
@@ -67,8 +78,8 @@ io.on('connection', function(socket) { //Create new player, let everyone know
       else {
         if (game.counts[generation] != data.count) {
           log.warning("Clients are out of sync!!");
-          log.warning("Client %s has generation %s", id, generation)
-          log.warning("Server has generation %s", game.generation)
+          log.warning("Client %s has count %s in generation %s", id, data.count, generation);
+          log.warning("Server has count %s in generation %s", game.counts[generation], generation);
           game.running = false;
         }
       }
@@ -76,7 +87,7 @@ io.on('connection', function(socket) { //Create new player, let everyone know
       clear()
       screen.info("Generation: %s", game.generation);
       _.each(game.clients, function(each) {
-        screen.info("Client %s movment: %s", each.id, each.moved);
+        screen.info("Client %s moved: %s", each.id, each.moved);
       });
       if (data.changed) {
         log.debug("Data from client %s in generation %s", id, generation);
