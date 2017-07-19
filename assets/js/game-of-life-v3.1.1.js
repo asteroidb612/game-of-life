@@ -210,8 +210,8 @@
       });
 
       this.socket.on("generation", function(generation) {
-        //console.log("Generation ", generation);
-        GOL.generation++;
+        if (GOL.generation != generation) {console.log("Client on wrong generation");debugger;}
+        GOL.tickScheduled = true;
         var response = {
           "gameOver": GOL.gameOver,
           "count": GOL.element.livecells,
@@ -219,8 +219,8 @@
         };
         if (response["changed"]) {
           response["moves"] = GOL.automata.queuedState;
+          GOL.automata.queueCommitScheduled = false;
         }
-        GOL.tickScheduled = true;;
         GOL.socket.emit("input", generation, response);
       });
 
@@ -228,6 +228,7 @@
         GOL.automata.serverState = changes.moves;
         GOL.automata.serverCommitScheduled = true;
       });
+      GOL.generation++;
     },
 
     /**
@@ -387,7 +388,7 @@
           event = window.event;
         }
 
-        if (event.keyCode === 67) { // Key: Space
+        if (event.keyCode === 67) { // Key: C
           GOL.automata.queueCommitScheduled= true;
         } else if (event.keyCode === 82 ) { // Key: R
           GOL.handlers.buttons.run();
@@ -796,7 +797,7 @@
         }
 
 
-        // Add in anything from the nerver
+        // Add  cells from server queue
         if (this.serverCommitScheduled) {
           this.serverCommitScheduled = false;
           for (i = 0; i < this.serverState.length; i++) {
