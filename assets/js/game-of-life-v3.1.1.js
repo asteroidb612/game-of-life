@@ -28,6 +28,7 @@
     generation : 0,
     columns : 0,
     rows : 0,
+    territorySize : 25,
 
     running : false,
     autoplay : false,//true,
@@ -162,6 +163,7 @@
     * On Load Event
     */
     init : function() {
+      localStorage.debug = 'socket*';
       //      try {
       this.automata.init();   // Reset/init algorithm
       this.registerEvents();  // Register event handlers
@@ -209,9 +211,8 @@
         GOL.nextStep();
       });
 
-      this.socket.on("generation", function(generation) {
+      this.socket.on("preTickSync", function(generation) {
         if (GOL.generation != generation) {console.log("Client on wrong generation");debugger;}
-        GOL.tickScheduled = true;
         var response = {
           "gameOver": GOL.gameOver,
           "count": GOL.element.livecells,
@@ -228,7 +229,6 @@
         GOL.automata.serverState = changes.moves;
         GOL.automata.serverCommitScheduled = true;
       });
-      GOL.generation++;
     },
 
     /**
@@ -342,7 +342,7 @@
       canvasMouseDown : function(event) {
         var coordinates = GOL.helpers.mouseCoordinates(event);
         var position = GOL.helpers.coordinatePosition(coordinates);
-        var r = (GOL.zoom.schemes[GOL.zoom.current].cellSize + 1) * 10;
+        var r = (GOL.zoom.schemes[GOL.zoom.current].cellSize + 1) * GOL.territorySize;
         var click = [coordinates.x, coordinates.y];
         var base = [GOL.player.baseCoordinates.x, GOL.player.baseCoordinates.y]
         if (GOL.helpers.distance(click, base) < r) {
@@ -367,7 +367,7 @@
         if (GOL.handlers.mouseDown) {
           var coordinates = GOL.helpers.mouseCoordinates(event);
           var position = GOL.helpers.coordinatePosition(coordinates);
-          var r = (GOL.zoom.schemes[GOL.zoom.current].cellSize + 1) * 10;
+          var r = (GOL.zoom.schemes[GOL.zoom.current].cellSize + 1) * GOL.territorySize;
           var click = [coordinates.x, coordinates.y];
           var base = [GOL.player.baseCoordinates.x, GOL.player.baseCoordinates.y]
           if (GOL.helpers.distance(click, base) < r) {
@@ -610,9 +610,10 @@
           this.context.font = "36px sans";
           this.context.fillText(GOL.gameResult,  (this.cellSize + this.cellSpace) * GOL.messageLoc[0], (this.cellSize + this.cellSpace) * GOL.messageLoc[1] + 30);
         }
+        // Draw Territory
         this.context.beginPath();
         this.context.arc(GOL.player.baseCoordinates.x, GOL.player.baseCoordinates.y,
-          (GOL.zoom.schemes[GOL.zoom.current].cellSize + 1) * 10,
+          (GOL.zoom.schemes[GOL.zoom.current].cellSize + 1) * GOL.territorySize,
           0, 2*Math.PI);
           this.context.stroke();
         },
