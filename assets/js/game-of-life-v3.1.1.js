@@ -212,7 +212,7 @@
       });
 
       this.socket.on("preTickSync", function(generation) {
-        if (GOL.generation != generation) {console.log("Client on wrong generation");debugger;}
+        if (GOL.generation != generation) {console.log("Client on wrong generation");}
         var response = {
           "gameOver": GOL.gameOver,
           "count": GOL.element.livecells,
@@ -222,12 +222,15 @@
           response["moves"] = GOL.automata.queuedState;
           GOL.automata.queueCommitScheduled = false;
         }
-        GOL.socket.emit("input", generation, response);
+        GOL.socket.emit("preTickResponse", GOL.generation, response);
       });
 
-      this.socket.on("changes", function(changes) { // This may only allow one user to make changes at a time
-        GOL.automata.serverState = changes.moves;
-        GOL.automata.serverCommitScheduled = true;
+      this.socket.on("tickSync", function(changes) {
+        if (changes) {
+          GOL.automata.serverState = changes;
+          GOL.automata.serverCommitScheduled = true;
+        }
+        GOL.tickScheduled = true;
       });
     },
 
@@ -237,7 +240,6 @@
     cleanUp : function() {
       this.automata.init(); // Reset/init algorithm
     },
-
 
     /* registerEvents
     *  Register event handlers for this session (one time execution)
@@ -271,11 +273,11 @@
         //Does the real work of advancing state of game
         //Rest of this function does the graphics
         GOL.element.livecells = GOL.automata.nextGeneration();
+        GOL.socket.emit("postTickCheck", GOL.element.livecells, ++GOL.generation);
 
         algorithmTime = (new Date()) - algorithmTime;
         GOL.tickScheduled = false;
       }
-
 
       // Canvas run
 

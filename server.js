@@ -17,7 +17,11 @@ var game = {
   columns : 180,
   rows : 86,
   running : true,
-  initialState : '[{"46": [5,6,7], "45":[7], "44":[6]}]'
+  initialState : '[{"46": [5,6,7], "45":[7], "44":[6]}]',
+  moves : {},
+  allMoves: function() {
+    return this.moves[Object.keys(this.moves)[0]]; //Cheat, should return mix of all not first
+  }
 };
 
 process.on('SIGINFO', function() {
@@ -30,7 +34,7 @@ function createBaseCoordinates() {
     return  {x:22, y:368}; //CanvasCoordinates for left base
   }
   else {
-    return {x:1255, y:368}; // Canvas Coordinates for right base
+    return {x:1250, y:368}; // Canvas Coordinates for right base
   }
 };
 
@@ -67,24 +71,26 @@ io.on('connection', function(socket) { //Create new player
         }
       }
 
-      //Output
-      //clear()
-      //screen.info("Generation: %s", game.generation);
-      _.each(game.clients, function(each) {
-        //screen.info("Client %s moved: %s", each.id, each.moved);
-      });
-
-      game.clients[id].moved = true;
+      // Update for new data
       if (data.changed) {
-        //log.debug("Data from client %s in generation %s", id.slice(0,4), generation);
-        //log.debug(data);
-        io.emit('changes', {player:id, moves:data.moves});
-        _.each(game.clients, function(x) { x.moved = false;}
-        io.emit('preTickSync', game.generation);
-      //Gate before advancing generation
-      if (_.all(_.pluck(game.clients, 'moved'))) {
-        _.each(game.clients, function(x) { x.moved = false; }); //Reset Players
-        io.emit('preTickSync', ++game.generation); // Advance game.clients 1 generation
+        game.moves[id] = data.moves;
+      }
+
+      //Gate before advancing to tick for generation
+      game.clients[id].preTickResponded = true;
+      if (_.all(_.pluck(game.clients, 'preTickResponded'))) {
+        io.emit('tickSync', game.allMoves());
+      }
+    }
+  });
+
+  socket.on('postTickCheck', function(cellCount, generation) {
+    if (game.running && (generation == game.generation+1)) {
+      game.clients[id].postTickChecked = true;
+      if (_.all(_.pluck(game.clients, 'postTickChecked'))) {
+        _.each(game.clients, function(x) {x.postTickChecked  = false;})
+        _.each(game.clients, function(x) {x.preTickResponded = false;})
+        io.emit('preTickSync', ++game.generation);
       }
     }
   });
