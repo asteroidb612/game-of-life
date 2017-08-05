@@ -20,7 +20,12 @@ var game = {
   initialState : '[{"46": [5,6,7], "45":[7], "44":[6]}]',
   moves : {},
   allMoves: function() {
-    return this.moves[Object.keys(this.moves)[0]]; //Cheat, should return mix of all not first
+    //Cheat until I pull automata out
+    var first;
+    if (_.isEmpty(this.moves)) first = [];
+    else first = this.moves[Object.keys(this.moves)[0]];
+    this.moves = {};
+    return first;
   }
 };
 
@@ -97,11 +102,10 @@ io.on('connection', function(socket) { //Create new player
 
   if (_.size(game.clients) == game.gameSize) {
     //screen.info("Beginning Game with\n");
-    for (c in game.clients) {
+    //for (c in game.clients) {
       //console.log("Client ", c);
-    }
+    //}
     io.emit("go", game);// May not arrive before "generation"!
-    io.emit("preTickSync", game.generation)
   }
 });
 

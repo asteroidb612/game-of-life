@@ -163,7 +163,6 @@
     * On Load Event
     */
     init : function() {
-      localStorage.debug = 'socket*';
       //      try {
       this.automata.init();   // Reset/init algorithm
       this.registerEvents();  // Register event handlers
@@ -219,9 +218,9 @@
           "changed" : GOL.automata.queueCommitScheduled
         };
         if (response["changed"]) {
-          debugger;
           response["moves"] = GOL.automata.queuedState;
           GOL.automata.queueCommitScheduled = false;
+          GOL.automata.queuedState = [];
         }
         GOL.socket.emit("preTickResponse", GOL.generation, response);
       });
@@ -392,8 +391,8 @@
         }
 
         if (event.keyCode === 67) { // Key: C
-          if (GOL.automata.queuedState) {
-            GOL.automata.queueCommitScheduled= true;
+          if (!_.isEmpty(GOL.automata.queuedState)) {
+            GOL.automata.queueCommitScheduled = true;
           }
         } else if (event.keyCode === 82 ) { // Key: R
           GOL.handlers.buttons.run();
@@ -817,7 +816,6 @@
           }
         }
         this.serverState = [];
-        this.queuedState = [];
       }
 
       this.actualState = newState;
