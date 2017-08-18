@@ -369,14 +369,16 @@
         if (GOL.handlers.mouseDown) {
           var coordinates = GOL.helpers.mouseCoordinates(event);
           var position = GOL.helpers.coordinatePosition(coordinates);
-          var r = (GOL.zoom.schemes[GOL.zoom.current].cellSize + 1) * GOL.territorySize;
-          var click = [coordinates.x, coordinates.y];
-          var base = [GOL.player.baseCoordinates.x, GOL.player.baseCoordinates.y]
-          if (GOL.helpers.distance(click, base) < r) {
-            GOL.canvas.queueCell(position.x, position.y);
+          if ((position.x !== GOL.handlers.lastX) || (position.y !== GOL.handlers.lastY)) {
+            var r = (GOL.zoom.schemes[GOL.zoom.current].cellSize + 1) * GOL.territorySize;
+            var click = [coordinates.x, coordinates.y];
+            var base = [GOL.player.baseCoordinates.x, GOL.player.baseCoordinates.y]
+            if (GOL.helpers.distance(click, base) < r) {
+              GOL.canvas.queueCell(position.x, position.y);
+            }
+            GOL.handlers.lastX = position.x;
+            GOL.handlers.lastY = position.y;
           }
-          GOL.handlers.lastX = position.x;
-          GOL.handlers.lastY = position.y;
         }
       },
 
