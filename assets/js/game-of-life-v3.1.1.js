@@ -613,6 +613,7 @@
       if (GOL.gameOver) {
         this.context.font = "48px sans";
         this.context.textAlign = "center";
+        this.context.fillStyle = "#ff9898";
         this.context.fillText("Game Over",  (this.cellSize + this.cellSpace) * GOL.messageLoc[0], (this.cellSize + this.cellSpace) * GOL.messageLoc[1]);
 
         this.context.font = "36px sans";
