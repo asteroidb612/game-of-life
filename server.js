@@ -5,7 +5,6 @@ var io = require('socket.io')(http);
 var _ = require('underscore');
 var uuid = require('node-uuid');
 
-var clear = require('clear');
 var Log = require('log');
 var log = new Log('debug');
 
@@ -17,7 +16,7 @@ var game = {
   columns : 180,
   rows : 86,
   running : true,
-  initialState : '[{"46": [5,6,7], "45":[7], "44":[6]}]',
+  initialState : '[{"146": [5,6,7], "145":[7], "144":[6]}]',
   moves : {},
   allMoves: function() {
     //Cheat until I pull automata out
@@ -33,15 +32,19 @@ process.on('SIGINFO', function() {
   console.log(game);
 });
 
-function createBaseCoordinates() {
-  var size = _.size(game.clients);
-  if (size == 0) { //TODO Possibly a concurrency problem
-    return  {x:22, y:368}; //CanvasCoordinates for left base
-  }
-  else {
-    return {x:1250, y:368}; // Canvas Coordinates for right base
-  }
-};
+createBaseCoordinates = (function wrapper() {
+  var counter = 0;
+  function createBaseCoordinates() {
+    counter++;
+    if (counter%2 == 0) { //TODO Possibly a concurrency problem
+      return  {x:52, y:368}; //CanvasCoordinates for left base
+    }
+    else {
+      return {x:1220, y:368}; // Canvas Coordinates for right base
+    }
+  };
+  return createBaseCoordinates;
+})();
 
 io.on('connection', function(socket) { //Create new player
   var id = uuid.v4();
