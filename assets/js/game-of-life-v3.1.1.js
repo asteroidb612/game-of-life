@@ -15,7 +15,7 @@
   // align top-left
   stats.domElement.style.position = 'absolute';
   stats.domElement.style.right = '0px';
-  stats.domElement.style.bottom = '0px';
+  stats.domElement.style.top= '0px';
   stats.domElement.style.zIndex = '999999';
 
   document.addEventListener("DOMContentLoaded", function() {
@@ -251,14 +251,8 @@
 
       // Controls
       this.helpers.registerEvent(document.getElementById('buttonRun'), 'click', this.handlers.buttons.run, false);
-      this.helpers.registerEvent(document.getElementById('buttonStep'), 'click', this.handlers.buttons.step, false);
-      this.helpers.registerEvent(document.getElementById('buttonClear'), 'click', this.handlers.buttons.clear, false);
-      this.helpers.registerEvent(document.getElementById('buttonExport'), 'click', this.handlers.buttons.export_, false);
+      this.helpers.registerEvent(document.getElementById('buttonCommit'), 'click', this.handlers.buttons.commit, false);
 
-      // Layout
-      this.helpers.registerEvent(document.getElementById('buttonTrail'), 'click', this.handlers.buttons.trail, false);
-      this.helpers.registerEvent(document.getElementById('buttonGrid'), 'click', this.handlers.buttons.grid, false);
-      this.helpers.registerEvent(document.getElementById('buttonColors'), 'click', this.handlers.buttons.colors, false);
     },
 
     //Run Next Step
@@ -382,7 +376,6 @@
         }
       },
 
-
       /**
       *
       */
@@ -391,18 +384,12 @@
         if (!event) {
           event = window.event;
         }
-
         if (event.keyCode === 67) { // Key: C
-          if (!_.isEmpty(GOL.automata.queuedState)) {
-            GOL.automata.queueCommitScheduled = true;
-          }
-        } else if (event.keyCode === 82 ) { // Key: R
+          GOL.handlers.buttons.commit();
+        } else if (event.keyCode === 80 ) { // Key: P
           GOL.handlers.buttons.run();
-        } else if (event.keyCode === 83 ) { // Key: S
-          GOL.handlers.buttons.step();
         }
       },
-
 
       buttons : {
 
@@ -410,120 +397,26 @@
         * Button Handler - Run
         */
         run : function() {
-          //GOL.element.hint.style.display = 'none';
-
           GOL.running = !GOL.running;
           if (GOL.running) {
             GOL.nextStep();
-            document.getElementById('buttonRun').value = 'Stop';
+            document.getElementById('buttonRun').value = 'Pause (Shortcut P)';
           } else {
-            document.getElementById('buttonRun').value = 'Run';
+            document.getElementById('buttonRun').value = 'Run (Shortcut P)';
           }
         },
 
-
         /**
-        * Button Handler - Next Step - One Step only
+        * Button Handler - Add queue of cells to game
         */
-        step : function() {
-          if (!GOL.running) {
-            GOL.nextStep();
-          }
-        },
-
-
-        /**
-        * Button Handler - Clear World
-        */
-        clear : function() {
-          if (GOL.running) {
-            GOL.clear.schedule = true;
-            GOL.running = false;
-            document.getElementById('buttonRun').value = 'Run';
-          } else {
-            GOL.cleanUp();
-          }
-        },
-
-
-        /**
-        * Button Handler - Remove/Add Trail
-        */
-        trail : function() {
-          GOL.element.messages.layout.innerHTML = GOL.trail.current ? 'Trail is Off' : 'Trail is On';
-          GOL.trail.current = !GOL.trail.current;
-          if (GOL.running) {
-            GOL.trail.schedule = true;
-          } else {
-            GOL.canvas.drawWorld();
-          }
-        },
-
-
-        /**
-        *
-        */
-        colors : function() {
-          GOL.colors.current = (GOL.colors.current + 1) % GOL.colors.schemes.length;
-          GOL.element.messages.layout.innerHTML = 'Color Scheme #' + (GOL.colors.current + 1);
-          if (GOL.running) {
-            GOL.colors.schedule = true; // Delay redraw
-          } else {
-            GOL.canvas.drawWorld(); // Force complete redraw
-          }
-        },
-
-
-        /**
-        *
-        */
-        grid : function() {
-          GOL.grid.current = (GOL.grid.current + 1) % GOL.grid.schemes.length;
-          GOL.element.messages.layout.innerHTML = 'Grid Scheme #' + (GOL.grid.current + 1);
-          if (GOL.running) {
-            GOL.grid.schedule = true; // Delay redraw
-          } else {
-            GOL.canvas.drawWorld(); // Force complete redraw
-          }
-        },
-
-
-        /**
-        * Button Handler - Export State
-        */
-        export_ : function() {
-          var i, j, url = '', cellState = '', params = '';
-
-          for (i = 0; i < GOL.automata.actualState.length; i++) {
-            cellState += '{"'+GOL.automata.actualState[i][0]+'":[';
-            //cellState += '{"one":[';
-            for (j = 1; j < GOL.automata.actualState[i].length; j++) {
-              cellState += GOL.automata.actualState[i][j]+',';
-            }
-            cellState = cellState.substring(0, cellState.length - 1) + ']},';
-          }
-
-          cellState = cellState.substring(0, cellState.length - 1) + '';
-
-          if (cellState.length !== 0) {
-            url = (window.location.href.indexOf('?') === -1) ? window.location.href : window.location.href.slice(0, window.location.href.indexOf('?'));
-
-            params = '?autoplay=0' +
-            '&trail=' + (GOL.trail.current ? '1' : '0') +
-            '&grid=' + (GOL.grid.current + 1) +
-            '&colors=' + (GOL.colors.current + 1) +
-            '&zoom=' + (GOL.zoom.current + 1) +
-            '&s=['+ cellState +']';
-
-            document.getElementById('exportUrlLink').href = params;
-            document.getElementById('exportTinyUrlLink').href = 'http://tinyurl.com/api-create.php?url='+ url + params;
-            document.getElementById('exportUrl').style.display = 'inline';
+        commit : function (){
+          if (!_.isEmpty(GOL.automata.queuedState)) {
+            GOL.automata.queueCommitScheduled = true;
           }
         }
-
       }
 
-    },
+    }, // handlers
 
     //Canvas
     canvas: {
