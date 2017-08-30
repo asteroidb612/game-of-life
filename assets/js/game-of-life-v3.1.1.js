@@ -14,7 +14,7 @@
   automataStats.setMode( 0 ); // 0 FPS, 1 MS
 
   // align top-left
-  automataStats.domElement.style.position = 'absolute';
+  automataStats.domElement.style.position = 'fixed';
   automataStats.domElement.style.right = '0px';
   automataStats.domElement.style.top= '0px';
   automataStats.domElement.style.zIndex = '999999';
@@ -28,7 +28,7 @@
   canvasStats.setMode( 0 ); // 0 FPS, 1 MS
 
   // align top-left
-  canvasStats.domElement.style.position = 'absolute';
+  canvasStats.domElement.style.position = 'fixed';
   canvasStats.domElement.style.right = '80px';
   canvasStats.domElement.style.top= '0px';
   canvasStats.domElement.style.zIndex = '999999';
