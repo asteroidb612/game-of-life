@@ -8,20 +8,34 @@
 
 (function () {
 
-  //Stats
-  var stats = new Stats();
-  stats.setMode( 0 ); // 0 FPS, 1 MS
+
+  //Canvas Stats
+  var automataStats = new Stats();
+  automataStats.setMode( 0 ); // 0 FPS, 1 MS
 
   // align top-left
-  stats.domElement.style.position = 'absolute';
-  stats.domElement.style.right = '0px';
-  stats.domElement.style.top= '0px';
-  stats.domElement.style.zIndex = '999999';
+  automataStats.domElement.style.position = 'absolute';
+  automataStats.domElement.style.right = '0px';
+  automataStats.domElement.style.top= '0px';
+  automataStats.domElement.style.zIndex = '999999';
 
   document.addEventListener("DOMContentLoaded", function() {
-    document.body.appendChild( stats.domElement );
+    document.body.appendChild( automataStats.domElement );
   });
 
+  //Canvas Stats
+  var canvasStats = new Stats();
+  canvasStats.setMode( 0 ); // 0 FPS, 1 MS
+
+  // align top-left
+  canvasStats.domElement.style.position = 'absolute';
+  canvasStats.domElement.style.right = '80px';
+  canvasStats.domElement.style.top= '0px';
+  canvasStats.domElement.style.zIndex = '999999';
+
+  document.addEventListener("DOMContentLoaded", function() {
+    document.body.appendChild( canvasStats.domElement );
+  });
   var GOL = {
 
     //Game State
@@ -257,25 +271,21 @@
 
     //Run Next Step
     nextStep : function() {
-      var i, x, y, r, liveCellNumber, algorithmTime, guiTime;
+      var i, x, y, r, liveCellNumber;
 
       // Algorithm run
 
       if (GOL.tickScheduled) {
-        algorithmTime = (new Date());
-
+        automataStats.begin()
         //Does the real work of advancing state of game
         //Rest of this function does the graphics
         GOL.element.livecells = GOL.automata.nextGeneration();
         GOL.socket.emit("postTickCheck", GOL.element.livecells, ++GOL.generation);
-
-        algorithmTime = (new Date()) - algorithmTime;
         GOL.tickScheduled = false;
+        automataStats.end()
       }
 
       // Canvas run
-
-      guiTime = (new Date());
 
       for (i = 0; i < GOL.automata.redrawList.length; i++) {
         x = GOL.automata.redrawList[i][0];
@@ -289,8 +299,6 @@
           GOL.canvas.changeCelltoDead(x, y);
         }
       }
-
-      guiTime = (new Date()) - guiTime;
 
       // Pos-run updates
 
@@ -314,9 +322,9 @@
 
       // Flow Control
       if (GOL.running) {
-        stats.begin();
+        canvasStats.begin();
         window.requestAnimationFrame(GOL.nextStep);
-        stats.end();
+        canvasStats.end();
       } else {
         if (GOL.clear.schedule) {
           GOL.cleanUp();
