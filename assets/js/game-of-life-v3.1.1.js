@@ -14,7 +14,11 @@
   automataStats.setMode( 0 ); // 0 FPS, 1 MS
 
   // align top-left
+<<<<<<< HEAD
   automataStats.domElement.style.position = 'fixed';
+=======
+  automataStats.domElement.style.position = 'absolute';
+>>>>>>> f58fc90a3e7f6ef4ad0e3251dcf469081e52c41e
   automataStats.domElement.style.right = '0px';
   automataStats.domElement.style.top= '0px';
   automataStats.domElement.style.zIndex = '999999';
@@ -28,7 +32,11 @@
   canvasStats.setMode( 0 ); // 0 FPS, 1 MS
 
   // align top-left
+<<<<<<< HEAD
   canvasStats.domElement.style.position = 'fixed';
+=======
+  canvasStats.domElement.style.position = 'absolute';
+>>>>>>> f58fc90a3e7f6ef4ad0e3251dcf469081e52c41e
   canvasStats.domElement.style.right = '80px';
   canvasStats.domElement.style.top= '0px';
   canvasStats.domElement.style.zIndex = '999999';
