@@ -177,21 +177,20 @@
     * On Load Event
     */
     init : function() {
-      //      try {
       this.automata.init();   // Reset/init algorithm
       this.registerEvents();  // Register event handlers
       this.initSocket();      // Connect to server
-      //     } catch (e) {
-      //       alert("Error: "+e);
-      //     }
     },
 
-
     initSocket : function() {
-      //$this is GOL within initSocket, BUT NOT WITHIN CALLBACKS
-      this.socket = io();
+      this.server = io();
+      this.peer = new Peer('1ws0ap98qnz5mi');
 
-      this.socket.on("id", function(id){
+      this.peer.on('open', function(peerID) {
+        GOL.server.emit('ready', {peerID: peerID}) ;
+      });
+
+      this.server.on("id", function(id){
         GOL.playerID = id;
       });
 
