@@ -3,19 +3,30 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var _ = require('underscore');
-var uuid = require('node-uuid');
+var uuid = require('uuid/v4');
 
 var Log = require('log');
 var log = new Log('debug');
 
 global clients;
 global games;
+global map = {
+  bases: [{x:52, y:368}, {x:1220, y:368}],
+  columns: 180,
+  rows: 86
+};
 
 io.on('connection', function(socket) { //Create new player
   io.on('ready', function(player) {
-    clients.append(player);
+    clients[player.peerID] = player;
+    clients[player.peerID].base = map.bases[clients.length-1];
     if (clients.length === 2) {
-      socket.
+      io.emit('game', {//This could be more selective with a channel
+        caller: player.peerID,
+        clients: clients,
+        map:map,
+        generation:0
+      });
     }
   });
 
