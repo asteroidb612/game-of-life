@@ -224,7 +224,7 @@
         GOL.handlers.setName(GOL.id);
         GOL.players = game.clients;
         for (c in GOL.players) {
-          GOL.players[c].base = GOL.helpers.baseFromCoordinates(GOL.players[c].baseCoordinates));
+          GOL.players[c].base = GOL.helpers.baseFromCoordinates(GOL.players[c].baseCoordinates);
           for (var i=0; i<4; i++){
             var basePosition = GOL.players[c].base[i];
             GOL.automata.addCell(basePosition.x, basePosition.y, GOL.automata.actualState);
@@ -236,12 +236,18 @@
         GOL.canvas.drawWorld();
         GOL.loadState();
         GOL.nextStep();
+
+        //Establish the DataConnection and attach listeners
         if (game.caller === GOL.id) {
           GOL.conn = GOL.peer.connect(game.opponent.peerID);
           GOL.conn.on('open', function() {
             //Game was caller and connection succeeded
             GOL.advance_if_ready({gen: GOL.generation});
-          })
+          });
+          GOL.conn.on('data', function(turn) {
+              GOL.opponent_ready = true;
+              GOL.advance_if_ready(turn);
+            });
         } else {
           this.peer.on('connection', function(conn) {
             GOL.conn = conn;
@@ -249,15 +255,13 @@
               //Game was recipient and connection succeeded
               GOL.advance_if_ready({gen: GOL.generation});
             });
+            GOL.conn.on('data', function(turn) {
+              GOL.opponent_ready = true;
+              GOL.advance_if_ready(turn);
+            });
           });
         }
       });
-
-
-      this.conn.on('data', function(turn) {
-        GOL.opponent_ready = true;
-        GOL.advance_if_ready(turn);
-      })
     },
 
     advance_if_ready : function(turn){
@@ -273,14 +277,14 @@
           GOL.tickScheduled = true;
         }
       }
-    };
+    },
 
     //Run Next Step
     nextStep : function() {
       var i, x, y, r, liveCellNumber;
 
       // Algorithm run
-      
+
       if (GOL.tickScheduled) {
         automataStats.begin()
         //Does the real work of advancing state of game
@@ -353,7 +357,7 @@
 
       setName : function(name) {
         document.getElementById('playerName').innerHTML("Playing As " + name);
-      }
+      },
 
       /**
       *

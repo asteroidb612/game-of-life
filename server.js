@@ -8,9 +8,9 @@ var uuid = require('uuid/v4');
 var Log = require('log');
 var log = new Log('debug');
 
-global clients;
-global games;
-global map = {
+clients = {};
+games = {};
+map = {
   bases: [{x:52, y:368}, {x:1220, y:368}],
   columns: 180,
   rows: 86
@@ -21,6 +21,7 @@ io.on('connection', function(socket) { //Create new player
     clients[player.peerID] = player;
     clients[player.peerID].base = map.bases[clients.length-1];
     if (clients.length === 2) {
+      console.log("Starting Game");
       io.emit('game', {//This could be more selective with a channel
         caller: player.peerID,
         clients: clients,
@@ -31,7 +32,7 @@ io.on('connection', function(socket) { //Create new player
   });
 
   socket.on('disconnect', function() {
-    console.log(socket + "Disconnected");
+    console.log("Client Disconnected");
   });
 });
 
