@@ -205,10 +205,11 @@
 
     initSocket : function() {
       this.server = io();
-      this.peer = new Peer('1ws0ap98qnz5mi');
+      this.peer = new Peer({key: '1ws0ap98qnz5mi'});
 
       this.peer.on("error", function(err) {alert(err);});
 
+      //Optimize by not waiting on peer.open, see docs
       this.peer.on('open', function(peerID) {
         GOL.id = peerID;
         GOL.server.emit('ready', {peerID: peerID}) ;
@@ -236,80 +237,63 @@
         GOL.loadState();
         GOL.nextStep();
         if (game.caller === GOL.id) {
-          var connection = GOL.peer.connect(game.opponent.peerID);
-          connection.on('open', function() {
+          GOL.conn = GOL.peer.connect(game.opponent.peerID);
+          GOL.conn.on('open', function() {
             //Game was caller and connection succeeded
-            play(connection);
+            GOL.advance_if_ready({gen: GOL.generation});
           })
+        } else {
+          this.peer.on('connection', function(conn) {
+            GOL.conn = conn;
+            GOL.conn.on('open', function() {
+              //Game was recipient and connection succeeded
+              GOL.advance_if_ready({gen: GOL.generation});
+            });
+          });
         }
       });
 
-      this.peer.on('connection', function(dc) {
-        //Game was recipient and connection succeeded
-        play(dc);
-      });
-      function play(dc){
 
+      this.conn.on('data', function(turn) {
+        GOL.opponent_ready = true;
+        GOL.advance_if_ready(turn);
+      })
+    },
+
+    advance_if_ready : function(turn){
+      if (turn.gen === GOL.generation){
+        if (GOL.self_ready && GOL.opponent_ready) {
+          GOL.self_ready == false;
+          GOL.opponent_ready == false;
+          GOL.generation++;
+          if (turn.moves) {
+            GOL.automata.serverState = turn.moves;
+            GOL.automata.serverCommitScheduled = true;
+          }
+          GOL.tickScheduled = true;
+        }
       }
-
-      this.socket.on("preTickSync", function(generation) {
-        if (GOL.generation != generation) {console.log("Client on wrong generation");}
-        var response = {
-          "gameOver": GOL.gameOver,
-          "count": GOL.element.livecells,
-          "changed" : GOL.automata.queueCommitScheduled
-        };
-        if (response["changed"]) {
-          response["moves"] = GOL.automata.queuedState;
-          GOL.automata.queueCommitScheduled = false;
-          GOL.automata.queuedState = [];
-        }
-        GOL.socket.emit("preTickResponse", GOL.generation, response);
-      });
-
-      this.socket.on("tickSync", function(changes) {
-        if (changes) {
-          GOL.automata.serverState = changes;
-          GOL.automata.serverCommitScheduled = true;
-        }
-        GOL.tickScheduled = true;
-      });
-    },
-
-    /**
-    * Clean up actual state and prepare a new run
-    */
-    cleanUp : function() {
-      this.automata.init(); // Reset/init algorithm
-    },
-
-    /* registerEvents
-    *  Register event handlers for this session (one time execution)
-    */
-    registerEvents : function() {
-
-      // Keyboard Events
-      this.helpers.registerEvent(document.body, 'keyup', this.handlers.keyboard, false);
-
-      // Controls
-      this.helpers.registerEvent(document.getElementById('buttonRun'), 'click', this.handlers.buttons.run, false);
-      this.helpers.registerEvent(document.getElementById('buttonCommit'), 'click', this.handlers.buttons.commit, false);
-
-    },
+    };
 
     //Run Next Step
     nextStep : function() {
       var i, x, y, r, liveCellNumber;
 
       // Algorithm run
-
+      
       if (GOL.tickScheduled) {
         automataStats.begin()
         //Does the real work of advancing state of game
         //Rest of this function does the graphics
         GOL.element.livecells = GOL.automata.nextGeneration();
-        GOL.socket.emit("postTickCheck", GOL.element.livecells, ++GOL.generation);
+        var turn = {gen: GOL.generation};
+        if (GOL.autamata.queueCommitScheduled) {
+          turn.moves = GOL.automata.queuedState;
+          GOL.automata.queuedState = [];
+        }
+        GOL.conn.send("postTickCheck", turn);
         GOL.tickScheduled = false;
+        GOL.self_ready = true;
         automataStats.end()
       }
 
