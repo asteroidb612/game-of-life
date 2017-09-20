@@ -174,12 +174,33 @@
     },
 
     /**
+    * Clean up actual state and prepare a new run
+    */
+    cleanUp : function() {
+      this.automata.init(); // Reset/init algorithm
+    },
+
+    /**
     * On Load Event
     */
     init : function() {
       this.automata.init();   // Reset/init algorithm
       this.registerEvents();  // Register event handlers
       this.initSocket();      // Connect to server
+    },
+
+    /* registerEvents
+    *  Register event handlers for this session (one time execution)
+    */
+    registerEvents : function() {
+
+      // Keyboard Events
+      this.helpers.registerEvent(document.body, 'keyup', this.handlers.keyboard, false);
+
+      // Controls
+      this.helpers.registerEvent(document.getElementById('buttonRun'), 'click', this.handlers.buttons.run, false);
+      this.helpers.registerEvent(document.getElementById('buttonCommit'), 'click', this.handlers.buttons.commit, false);
+
     },
 
     initSocket : function() {
