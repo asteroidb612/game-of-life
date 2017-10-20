@@ -17,13 +17,15 @@ map = {
 };
 
 io.on('connection', function(socket) { //Create new player
-  io.on('ready', function(player) {
+  console.log('Hello');
+  socket.on('ready', function(player) {
+    console.log('Ready with ', clients);
     clients[player.peerID] = player;
     clients[player.peerID].base = map.bases[clients.length-1];
-    if (clients.length === 2) {
-      console.log("Starting Game");
-      io.emit('game', {//This could be more selective with a channel
-        caller: player.peerID,
+    if (_.size(clients)=== 2) {
+      console.log("Starting Game with ", clients);
+      io.emit('game', {
+        caller: player.peerID, //Most recent connection initiates with least
         clients: clients,
         map:map,
         generation:0

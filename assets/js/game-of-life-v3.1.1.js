@@ -6,7 +6,7 @@
 * 04/Sep/2010
 */
 
-(function () {
+GOL = (function () {
 
 
   //Canvas Stats
@@ -224,7 +224,9 @@
         GOL.handlers.setName(GOL.id);
         GOL.players = game.clients;
         for (c in GOL.players) {
-          GOL.players[c].base = GOL.helpers.baseFromCoordinates(GOL.players[c].baseCoordinates);
+          var coord = game.map.bases.pop();
+          GOL.players[c].baseCoordinates = coord;
+          GOL.players[c].base = GOL.helpers.baseFromCoordinates(coord);
           for (var i=0; i<4; i++){
             var basePosition = GOL.players[c].base[i];
             GOL.automata.addCell(basePosition.x, basePosition.y, GOL.automata.actualState);
@@ -234,14 +236,15 @@
         GOL.running = true;
         GOL.canvas.init();     // Init canvas GUI
         GOL.canvas.drawWorld();
-        GOL.loadState();
-        GOL.nextStep();
 
         //Establish the DataConnection and attach listeners
         if (game.caller === GOL.id) {
-          GOL.conn = GOL.peer.connect(game.opponent.peerID);
+          var opponents = _.omit(_.keys(GOL.players), GOL.id);
+          GOL.conn = GOL.peer.connect(opponents[0]);
           GOL.conn.on('open', function() {
             //Game was caller and connection succeeded
+            GOL.nextStep();
+            GOL.opponent_ready = true;
             GOL.advance_if_ready({gen: GOL.generation});
           });
           GOL.conn.on('data', function(turn) {
@@ -249,10 +252,12 @@
               GOL.advance_if_ready(turn);
             });
         } else {
-          this.peer.on('connection', function(conn) {
+          GOL.peer.on('connection', function(conn) {
             GOL.conn = conn;
             GOL.conn.on('open', function() {
               //Game was recipient and connection succeeded
+              GOL.nextStep();
+              GOL.opponent_ready = true;
               GOL.advance_if_ready({gen: GOL.generation});
             });
             GOL.conn.on('data', function(turn) {
@@ -291,11 +296,11 @@
         //Rest of this function does the graphics
         GOL.element.livecells = GOL.automata.nextGeneration();
         var turn = {gen: GOL.generation};
-        if (GOL.autamata.queueCommitScheduled) {
+        if (GOL.automata.queueCommitScheduled) {
           turn.moves = GOL.automata.queuedState;
           GOL.automata.queuedState = [];
         }
-        GOL.conn.send("postTickCheck", turn);
+        GOL.conn.send(turn);
         GOL.tickScheduled = false;
         GOL.self_ready = true;
         automataStats.end()
@@ -356,7 +361,7 @@
       lastY : 0,
 
       setName : function(name) {
-        document.getElementById('playerName').innerHTML("Playing As " + name);
+        document.getElementById('playerName').innerHTML = "Playing As " + name;
       },
 
       /**
@@ -1151,4 +1156,5 @@ GOL.helpers.registerEvent(window, 'load', function () {
   GOL.init();
 }, false);
 
+return GOL;
 }());
