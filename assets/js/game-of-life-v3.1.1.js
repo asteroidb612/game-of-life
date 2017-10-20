@@ -217,8 +217,8 @@ GOL = (function () {
 
       this.server.on('game', function(game) {
         GOL.automata.init();
-        GOL.columns = game.columns;
-        GOL.rows = game.rows;
+        GOL.columns = game.map.columns;
+        GOL.rows = game.map.rows;
         GOL.generation = game.generation || 0;
         GOL.player = game.clients[GOL.id];
         GOL.handlers.setName(GOL.id);
