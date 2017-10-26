@@ -742,6 +742,17 @@ GOL = (function () {
           }
         }
 
+        if (this.queueCommitScheduled) {
+          for (i = 0; i < this.queuedState.length; i++) {
+            for (j = 1; j < this.queuedState[i].length; j++) {
+              x = this.queuedState[i][j];
+              y = this.queuedState[i][0];
+
+              this.addCell(x, y, newState);
+            }
+          }
+        }
+
 
         // Add  cells from server queue
         if (this.serverCommitScheduled) {
