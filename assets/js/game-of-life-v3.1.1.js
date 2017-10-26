@@ -217,6 +217,7 @@ GOL = (function () {
 
       this.server.on('game', function(game) {
         GOL.automata.init();
+        GOL.intervalQueue = [];
         GOL.columns = game.map.columns;
         GOL.rows = game.map.rows;
         GOL.generation = game.generation || 0;
@@ -300,7 +301,17 @@ GOL = (function () {
           turn.moves = GOL.automata.queuedState;
           GOL.automata.queuedState = [];
         }
-        GOL.conn.send(turn);
+        //Every 50 milleseconds, if gen changed unregister event
+        //Else, send the turn
+
+        GOL.intervalQueue.push(setInterval(function() {
+            if (turn.gen+2 < GOL.generation) { //-2 since clients can get one gen ahead of each other
+                clearInterval(GOL.intervalQueue.shift());
+                console.log(GOL.intervalQueue)
+              }
+            GOL.conn.send(turn);
+            console.log(turn)
+        }, 50));
         GOL.tickScheduled = false;
         GOL.self_ready = true;
         automataStats.end()
