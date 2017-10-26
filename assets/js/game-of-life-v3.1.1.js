@@ -1086,7 +1086,7 @@ GOL = (function () {
     },
 
     /**
-    * Location of mosue in Canvas
+    * Location of mouse in Canvas
     */
     mouseCoordinates : function (e){
       // http://www.malleus.de/FAQ/getImgMousePos.html

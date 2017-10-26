@@ -16,6 +16,8 @@ map = {
   rows: 86
 };
 
+process.on('SIGINFO', function() {clients = {};});
+
 io.on('connection', function(socket) { //Create new player
   console.log('Hello');
   socket.on('ready', function(player) {
