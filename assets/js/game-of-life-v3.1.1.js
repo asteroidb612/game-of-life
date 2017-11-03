@@ -200,6 +200,7 @@ GOL = (function () {
       // Controls
       this.helpers.registerEvent(document.getElementById('buttonRun'), 'click', this.handlers.buttons.run, false);
       this.helpers.registerEvent(document.getElementById('buttonCommit'), 'click', this.handlers.buttons.commit, false);
+      this.helpers.registerEvent(document.getElementById('buttonRestart'), 'click', this.handlers.buttons.restart, false);
 
     },
 
@@ -456,7 +457,13 @@ GOL = (function () {
           if (!_.isEmpty(GOL.automata.queuedState)) {
             GOL.automata.queueCommitScheduled = true;
           }
+        },
+        restart : function () {
+          if (GOL.server) {
+            GOL.server.emit("restart");
+          }
         }
+
       }
 
     }, // handlers

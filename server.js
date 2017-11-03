@@ -38,6 +38,9 @@ io.on('connection', function(socket) { //Create new player
   socket.on('disconnect', function() {
     console.log("Client Disconnected");
   });
+  socket.on('restart', function() {
+    clients = {};
+  });
 });
 
 app.use('/socket.io', express.static(__dirname + '/node_modules/socket.io-client/dist'));
