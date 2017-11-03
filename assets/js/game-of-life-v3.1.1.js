@@ -280,7 +280,6 @@ GOL = (function () {
         if (GOL.self_ready && GOL.opponent_ready) {
           GOL.self_ready == false;
           GOL.opponent_ready == false;
-          GOL.generation++;
           if (turn.moves) {
             GOL.automata.serverState = turn.moves;
             GOL.automata.serverCommitScheduled = true;
@@ -301,6 +300,7 @@ GOL = (function () {
         //Does the real work of advancing state of game
         //Rest of this function does the graphics
         GOL.element.livecells = GOL.automata.nextGeneration();
+        GOL.generation++;
         var turn = {gen: GOL.generation};
         if (GOL.automata.queueCommitScheduled) {
           turn.moves = GOL.automata.queuedState;
@@ -312,7 +312,6 @@ GOL = (function () {
         GOL.intervalHash[turn.gen] = setInterval(function() {
             if (turn.gen < GOL.opponent_generation) {
               clearInterval(GOL.intervalHash[turn.gen]);
-              delete GOL.intervalHash[turn.gen];
             }
             GOL.conn.send(turn);
             console.log(turn)
