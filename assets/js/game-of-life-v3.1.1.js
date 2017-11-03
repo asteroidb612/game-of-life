@@ -38,6 +38,7 @@ GOL = (function () {
   });
   var GOL = {
 
+    opponent_generation : 0,
     //Game State
     generation : 0,
     columns : 0,
@@ -218,7 +219,7 @@ GOL = (function () {
 
       this.server.on('game', function(game) {
         GOL.automata.init();
-        GOL.intervalQueue = [];
+        GOL.intervalHash = {};
         GOL.columns = game.map.columns;
         GOL.rows = game.map.rows;
         GOL.generation = game.generation || 0;
@@ -272,6 +273,9 @@ GOL = (function () {
     },
 
     advance_if_ready : function(turn){
+      if (turn.gen > GOL.opponent_generation){
+        GOL.opponent_generation = turn.gen; //So we can throw out old messages
+      }
       if (turn.gen === GOL.generation){
         if (GOL.self_ready && GOL.opponent_ready) {
           GOL.self_ready == false;
@@ -302,38 +306,38 @@ GOL = (function () {
           turn.moves = GOL.automata.queuedState;
           GOL.automata.queuedState = [];
         }
-        //Every 50 milleseconds, if gen changed unregister event
-        //Else, send the turn
 
-        GOL.intervalQueue.push(setInterval(function() {
-            if (turn.gen+2 < GOL.generation) { //-2 since clients can get one gen ahead of each other
-                clearInterval(GOL.intervalQueue.shift());
-                console.log(GOL.intervalQueue)
-              }
+        //Every 50 milleseconds, if gen changed then unregister event
+        //Else, send the turn
+        GOL.intervalHash[turn.gen] = setInterval(function() {
+            if (turn.gen < GOL.opponent_generation) {
+              clearInterval(GOL.intervalHash[turn.gen]);
+              delete GOL.intervalHash[turn.gen];
+            }
             GOL.conn.send(turn);
             console.log(turn)
-        }, 50));
-        GOL.tickScheduled = false;
-        GOL.self_ready = true;
-        automataStats.end()
-      }
-
-      // Canvas run
-
-      for (i = 0; i < GOL.automata.redrawList.length; i++) {
-        x = GOL.automata.redrawList[i][0];
-        y = GOL.automata.redrawList[i][1];
-
-        if (GOL.automata.redrawList[i][2] === 1) {
-          GOL.canvas.changeCelltoAlive(x, y);
-        } else if (GOL.automata.redrawList[i][2] === 2) {
-          GOL.canvas.keepCellAlive(x, y);
-        } else {
-          GOL.canvas.changeCelltoDead(x, y);
+          }, 50);
+          GOL.tickScheduled = false;
+          GOL.self_ready = true;
+          automataStats.end()
         }
-      }
 
-      // Pos-run updates
+        // Canvas run
+
+        for (i = 0; i < GOL.automata.redrawList.length; i++) {
+          x = GOL.automata.redrawList[i][0];
+          y = GOL.automata.redrawList[i][1];
+
+          if (GOL.automata.redrawList[i][2] === 1) {
+            GOL.canvas.changeCelltoAlive(x, y);
+          } else if (GOL.automata.redrawList[i][2] === 2) {
+            GOL.canvas.keepCellAlive(x, y);
+          } else {
+            GOL.canvas.changeCelltoDead(x, y);
+          }
+        }
+
+        // Pos-run updates
 
       // Clear Trail
       if (GOL.trail.schedule) {
