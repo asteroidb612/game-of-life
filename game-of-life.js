@@ -6,8 +6,26 @@
 * 04/Sep/2010
 */
 
+
+
+
 GOL = (function () {
 
+  const Stats = require('stats.js');
+
+  canvasStats = new Stats();
+  canvasStats.setMode( 0 ); // 0 FPS, 1 MS
+
+  // align top-left
+  canvasStats.domElement.style.position = 'fixed';
+  canvasStats.domElement.style.left = '';
+  canvasStats.domElement.style.right = '80px';
+  canvasStats.domElement.style.width = '80px';
+  canvasStats.domElement.style.top= '0px';
+  canvasStats.domElement.style.zIndex = '999999';
+  document.addEventListener("DOMContentLoaded", function() {
+    document.body.appendChild( canvasStats.domElement );
+  });
 
   //Canvas Stats
   var automataStats = new Stats();
@@ -16,25 +34,13 @@ GOL = (function () {
   // align top-left
   automataStats.domElement.style.position = 'fixed';
   automataStats.domElement.style.right = '0px';
+  automataStats.domElement.style.left = '';
+  automataStats.domElement.style.width = '80px';
   automataStats.domElement.style.top= '0px';
   automataStats.domElement.style.zIndex = '999999';
 
   document.addEventListener("DOMContentLoaded", function() {
     document.body.appendChild( automataStats.domElement );
-  });
-
-  //Canvas Stats
-  var canvasStats = new Stats();
-  canvasStats.setMode( 0 ); // 0 FPS, 1 MS
-
-  // align top-left
-  canvasStats.domElement.style.position = 'fixed';
-  canvasStats.domElement.style.right = '80px';
-  canvasStats.domElement.style.top= '0px';
-  canvasStats.domElement.style.zIndex = '999999';
-
-  document.addEventListener("DOMContentLoaded", function() {
-    document.body.appendChild( canvasStats.domElement );
   });
   var GOL = {
 
@@ -251,9 +257,9 @@ GOL = (function () {
             GOL.advance_if_ready({gen: GOL.generation});
           });
           GOL.conn.on('data', function(turn) {
-              GOL.opponent_ready = true;
-              GOL.advance_if_ready(turn);
-            });
+            GOL.opponent_ready = true;
+            GOL.advance_if_ready(turn);
+          });
         } else {
           GOL.peer.on('connection', function(conn) {
             GOL.conn = conn;
@@ -322,23 +328,22 @@ GOL = (function () {
           GOL.canvas.drawWorld();
           automataStats.end()
         }
+      // Canvas run
 
-        // Canvas run
+      for (i = 0; i < GOL.automata.redrawList.length; i++) {
+        x = GOL.automata.redrawList[i][0];
+        y = GOL.automata.redrawList[i][1];
 
-        for (i = 0; i < GOL.automata.redrawList.length; i++) {
-          x = GOL.automata.redrawList[i][0];
-          y = GOL.automata.redrawList[i][1];
-
-          if (GOL.automata.redrawList[i][2] === 1) {
-            GOL.canvas.changeCelltoAlive(x, y);
-          } else if (GOL.automata.redrawList[i][2] === 2) {
-            GOL.canvas.keepCellAlive(x, y);
-          } else {
-            GOL.canvas.changeCelltoDead(x, y);
-          }
+        if (GOL.automata.redrawList[i][2] === 1) {
+          GOL.canvas.changeCelltoAlive(x, y);
+        } else if (GOL.automata.redrawList[i][2] === 2) {
+          GOL.canvas.keepCellAlive(x, y);
+        } else {
+          GOL.canvas.changeCelltoDead(x, y);
         }
+      }
 
-        // Pos-run updates
+      // Pos-run updates
 
       // Clear Trail
       if (GOL.trail.schedule) {
