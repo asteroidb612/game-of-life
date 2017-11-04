@@ -305,6 +305,7 @@ GOL = (function () {
         if (GOL.automata.queueCommitScheduled) {
           turn.moves = GOL.automata.queuedState;
           GOL.automata.queuedState = [];
+          GOL.automata.queueCommitScheduled = false;
         }
 
         //Every 50 milleseconds, if gen changed then unregister event
