@@ -319,6 +319,7 @@ GOL = (function () {
           }, 50);
           GOL.tickScheduled = false;
           GOL.self_ready = true;
+          GOL.canvas.drawWorld();
           automataStats.end()
         }
 
