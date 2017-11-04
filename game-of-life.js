@@ -9,6 +9,7 @@
 const _ = require('underscore');
 const Stats = require('stats.js');
 const Peer = require('peerjs')
+const io = require('socket.io-client')
 
 GOL = (function () {
   var canvasStats = new Stats();

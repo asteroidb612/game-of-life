@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "RTS game based on Conway's Automata",
   "dependencies": {
+    "bufferutil": "^3.0.3",
     "clear": "0.0.1",
     "express": "^4.16.2",
     "log": "^1.4.0",
@@ -12,6 +13,7 @@
     "socket.io": "^1.7.4",
     "stats.js": "git+https://github.com/mrdoob/stats.js.git",
     "underscore": "^1.8.3",
+    "utf-8-validate": "^3.0.4",
     "uuid": "^3.1.0"
   }
 }
