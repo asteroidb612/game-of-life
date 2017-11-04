@@ -8,7 +8,7 @@
     "log": "^1.4.0",
     "node-gameloop": "^0.1.4",
     "node-uuid": "^1.4.8",
-    "peer": "^0.2.8",
+    "peerjs": "git+https://github.com/peers/peerjs.git",
     "socket.io": "^1.7.4",
     "stats.js": "git+https://github.com/mrdoob/stats.js.git",
     "underscore": "^1.8.3",

@@ -6,8 +6,9 @@
 * 04/Sep/2010
 */
 
-const Stats = require('stats.js');
 const _ = require('underscore');
+const Stats = require('stats.js');
+const Peer = require('peerjs')
 
 GOL = (function () {
   var canvasStats = new Stats();
