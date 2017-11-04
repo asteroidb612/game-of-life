@@ -6,8 +6,25 @@
 * 04/Sep/2010
 */
 
-GOL = (function () {
+const _ = require('underscore');
+const Stats = require('stats.js');
+const Peer = require('peerjs')
+const io = require('socket.io-client')
 
+GOL = (function () {
+  var canvasStats = new Stats();
+  canvasStats.setMode( 0 ); // 0 FPS, 1 MS
+
+  // align top-left
+  canvasStats.domElement.style.position = 'fixed';
+  canvasStats.domElement.style.left = '';
+  canvasStats.domElement.style.right = '80px';
+  canvasStats.domElement.style.width = '80px';
+  canvasStats.domElement.style.top= '0px';
+  canvasStats.domElement.style.zIndex = '999999';
+  document.addEventListener("DOMContentLoaded", function() {
+    document.body.appendChild( canvasStats.domElement );
+  });
 
   //Canvas Stats
   var automataStats = new Stats();
@@ -16,25 +33,13 @@ GOL = (function () {
   // align top-left
   automataStats.domElement.style.position = 'fixed';
   automataStats.domElement.style.right = '0px';
+  automataStats.domElement.style.left = '';
+  automataStats.domElement.style.width = '80px';
   automataStats.domElement.style.top= '0px';
   automataStats.domElement.style.zIndex = '999999';
 
   document.addEventListener("DOMContentLoaded", function() {
     document.body.appendChild( automataStats.domElement );
-  });
-
-  //Canvas Stats
-  var canvasStats = new Stats();
-  canvasStats.setMode( 0 ); // 0 FPS, 1 MS
-
-  // align top-left
-  canvasStats.domElement.style.position = 'fixed';
-  canvasStats.domElement.style.right = '80px';
-  canvasStats.domElement.style.top= '0px';
-  canvasStats.domElement.style.zIndex = '999999';
-
-  document.addEventListener("DOMContentLoaded", function() {
-    document.body.appendChild( canvasStats.domElement );
   });
   var GOL = {
 
@@ -152,28 +157,6 @@ GOL = (function () {
       ]
     },
 
-    loadState : function() {
-      var state, i, j, y, s = this.helpers.getUrlParameter('s');
-
-      if ( s === 'random') {
-        this.randomState();
-      } else {
-        if (s == undefined) {
-          s = GOL.initialState;
-        }
-
-        state = jsonParse(decodeURI(s));
-
-        for (i = 0; i < state.length; i++) {
-          for (y in state[i]) {
-            for (j = 0 ; j < state[i][y].length ; j++) {
-              GOL.automata.addCell(state[i][y][j], parseInt(y, 10), GOL.automata.actualState);
-            }
-          }
-        }
-      }
-    },
-
     /**
     * Clean up actual state and prepare a new run
     */
@@ -251,9 +234,9 @@ GOL = (function () {
             GOL.advance_if_ready({gen: GOL.generation});
           });
           GOL.conn.on('data', function(turn) {
-              GOL.opponent_ready = true;
-              GOL.advance_if_ready(turn);
-            });
+            GOL.opponent_ready = true;
+            GOL.advance_if_ready(turn);
+          });
         } else {
           GOL.peer.on('connection', function(conn) {
             GOL.conn = conn;
@@ -322,23 +305,22 @@ GOL = (function () {
           GOL.canvas.drawWorld();
           automataStats.end()
         }
+      // Canvas run
 
-        // Canvas run
+      for (i = 0; i < GOL.automata.redrawList.length; i++) {
+        x = GOL.automata.redrawList[i][0];
+        y = GOL.automata.redrawList[i][1];
 
-        for (i = 0; i < GOL.automata.redrawList.length; i++) {
-          x = GOL.automata.redrawList[i][0];
-          y = GOL.automata.redrawList[i][1];
-
-          if (GOL.automata.redrawList[i][2] === 1) {
-            GOL.canvas.changeCelltoAlive(x, y);
-          } else if (GOL.automata.redrawList[i][2] === 2) {
-            GOL.canvas.keepCellAlive(x, y);
-          } else {
-            GOL.canvas.changeCelltoDead(x, y);
-          }
+        if (GOL.automata.redrawList[i][2] === 1) {
+          GOL.canvas.changeCelltoAlive(x, y);
+        } else if (GOL.automata.redrawList[i][2] === 2) {
+          GOL.canvas.keepCellAlive(x, y);
+        } else {
+          GOL.canvas.changeCelltoDead(x, y);
         }
+      }
 
-        // Pos-run updates
+      // Pos-run updates
 
       // Clear Trail
       if (GOL.trail.schedule) {
@@ -794,7 +776,7 @@ GOL = (function () {
         }), true); //true to only flatten one level
 
         for (p in GOL.players) {
-          if (_.intersection(reference, GOL.players[p].base).length < 4) {
+          if (GOL.helpers.objectIntersection(reference, GOL.players[p].base).length < 4) {
             GOL.gameOver = true;
             GOL.gameResult = p + " Lost!";
             GOL.running = false;
@@ -1051,6 +1033,16 @@ GOL = (function () {
 
   //Helpers
   helpers : {
+    objectIntersection : function(array){
+      var slice = Array.prototype.slice; // added this line as a utility
+      var rest = slice.call(arguments, 1);
+      return _.filter(_.uniq(array), function(item) {
+        return _.every(rest, function(other) {
+          //return _.indexOf(other, item) >= 0; //Replaced from underscore so useful with objects
+          return _.any(other, function(element) { return _.isEqual(element, item); });
+        });
+      });
+    },
     arraysEqual : function (a, b) {
       if (a === b) return true;
       if (a == null || b == null) return false;

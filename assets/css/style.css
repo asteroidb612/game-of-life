@@ -24,11 +24,6 @@ abbr {
     cursor: help;
 }
 
-.cl {
-    line-height: 0;
-    clear: both;
-}
-
 #hint {
     background: #FFFF66;
     padding: 6px 10px;
@@ -36,7 +31,7 @@ abbr {
 }
 
 #wrapper {
-    width: 100%; 
+    width: 100%;
 }
 
 #title {
