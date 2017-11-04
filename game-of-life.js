@@ -6,14 +6,10 @@
 * 04/Sep/2010
 */
 
-
-
-
+const Stats = require('stats.js');
+const _ = require('underscore');
 GOL = (function () {
-
-  const Stats = require('stats.js');
-
-  canvasStats = new Stats();
+  var canvasStats = new Stats();
   canvasStats.setMode( 0 ); // 0 FPS, 1 MS
 
   // align top-left
@@ -799,7 +795,7 @@ GOL = (function () {
         }), true); //true to only flatten one level
 
         for (p in GOL.players) {
-          if (_.intersection(reference, GOL.players[p].base).length < 4) {
+          if (GOL.helpers.objectIntersection(reference, GOL.players[p].base).length < 4) {
             GOL.gameOver = true;
             GOL.gameResult = p + " Lost!";
             GOL.running = false;
@@ -1056,6 +1052,16 @@ GOL = (function () {
 
   //Helpers
   helpers : {
+    objectIntersection : function(array){
+      var slice = Array.prototype.slice; // added this line as a utility
+      var rest = slice.call(arguments, 1);
+      return _.filter(_.uniq(array), function(item) {
+        return _.every(rest, function(other) {
+          //return _.indexOf(other, item) >= 0; //Replaced from underscore so useful with objects
+          return _.any(other, function(element) { return _.isEqual(element, item); });
+        });
+      });
+    },
     arraysEqual : function (a, b) {
       if (a === b) return true;
       if (a == null || b == null) return false;
