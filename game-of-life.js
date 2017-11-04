@@ -8,6 +8,7 @@
 
 const Stats = require('stats.js');
 const _ = require('underscore');
+
 GOL = (function () {
   var canvasStats = new Stats();
   canvasStats.setMode( 0 ); // 0 FPS, 1 MS
@@ -152,28 +153,6 @@ GOL = (function () {
           queued : ['#4c4cff']
         },
       ]
-    },
-
-    loadState : function() {
-      var state, i, j, y, s = this.helpers.getUrlParameter('s');
-
-      if ( s === 'random') {
-        this.randomState();
-      } else {
-        if (s == undefined) {
-          s = GOL.initialState;
-        }
-
-        state = jsonParse(decodeURI(s));
-
-        for (i = 0; i < state.length; i++) {
-          for (y in state[i]) {
-            for (j = 0 ; j < state[i][y].length ; j++) {
-              GOL.automata.addCell(state[i][y][j], parseInt(y, 10), GOL.automata.actualState);
-            }
-          }
-        }
-      }
     },
 
     /**
