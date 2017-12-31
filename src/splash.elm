@@ -4,6 +4,7 @@ import Html exposing (..)
 import Html.Events exposing (..)
 
 
+main : Program Never Model Msg
 main =
     program
         { init = init ! []
@@ -30,6 +31,7 @@ init =
     "Default"
 
 
+update : Msg -> String -> ( String, Cmd msg )
 update msg model =
     case msg of
         EnqueueMultiplayerGame ->
@@ -44,6 +46,7 @@ update msg model =
                 ! []
 
 
+view : String -> Html Msg
 view name =
     div []
         [ div [] [ input [ onInput ChangeName ] [ text name ] ]

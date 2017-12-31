@@ -5,15 +5,30 @@
   "dependencies": {
     "bufferutil": "^3.0.3",
     "clear": "0.0.1",
+    "css-loader": "^0.28.7",
+    "elm-webpack-loader": "^4.4.0",
     "express": "^4.16.2",
+    "file-loader": "^1.1.6",
+    "foreman": "^2.0.0",
     "log": "^1.4.0",
     "node-gameloop": "^0.1.4",
     "node-uuid": "^1.4.8",
+    "package.json": "^2.0.1",
     "peerjs": "git+https://github.com/peers/peerjs.git",
     "socket.io": "^1.7.4",
-    "stats.js": "git+https://github.com/mrdoob/stats.js.git",
+    "stats.js": "github:mrdoob/stats.js",
+    "style-loader": "^0.19.1",
     "underscore": "^1.8.3",
+    "url-loader": "^0.6.2",
     "utf-8-validate": "^3.0.4",
-    "uuid": "^3.1.0"
+    "uuid": "^3.1.0",
+    "webpack": "^3.10.0",
+    "webpack-dev-server": "^2.9.7"
+  },
+  "scripts": {
+    "postinstall": "webpack -p",
+    "start": "node server.js",
+    "browsers": "./open.scpt",
+    "server": "webpack-dev-server --port 3000"
   }
 }

@@ -2,6 +2,10 @@ const _ = require("underscore");
 const Stats = require("stats.js");
 const Peer = require("peerjs");
 const io = require("socket.io-client");
+const Elm = require("./splash.elm");
+
+var node = document.getElementById("elm-stuff");
+var app = Elm.Main.embed(node);
 
 var canvasStats = new Stats();
 canvasStats.setMode(0); // 0 FPS, 1 MS
