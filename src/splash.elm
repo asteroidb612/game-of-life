@@ -48,10 +48,13 @@ update msg model =
 
 view : String -> Html Msg
 view name =
-    div []
-        [ div [] [ input [ onInput ChangeName ] [ text name ] ]
-        , div []
-            [ button [ onClick EnqueueMultiplayerGame ]
-                [ text <| "Play Against Others As " ++ name ]
-            ]
-        ]
+    div [] []
+
+
+
+--        [ div [] [ input [ onInput ChangeName ] [ text name ] ]
+--        , div []
+--            [ button [ onClick EnqueueMultiplayerGame ]
+--                [ text <| "Play Against Others As " ++ name ]
+--            ]
+--        ]
